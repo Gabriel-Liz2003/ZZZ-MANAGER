@@ -115,9 +115,9 @@ func importArchive(root, name string, body io.Reader) (string, error) {
             header, err := rar.Next()
             if err == io.EOF { break }
             if err != nil { return "", fmt.Errorf("Falha ao ler RAR: %w", err) }
-            if header.LinkType != 0 { return "", errors.New("RAR contém link não permitido") }
+            if header.Mode()&os.ModeSymlink != 0 || (header.Mode()&os.ModeType != 0 && !header.IsDir) { return "", errors.New("RAR contém link ou arquivo especial") }
             if header.UnKnownSize { return "", errors.New("RAR contém arquivo com tamanho desconhecido") }
-            mode := os.FileMode(0)
+            mode := header.Mode()
             if err := w.add(header.Name, header.UnPackedSize, header.IsDir, mode, rar); err != nil { return "", err }
         }
         if err := w.finish(); err != nil { return "", err }
