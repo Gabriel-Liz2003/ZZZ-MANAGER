@@ -26,7 +26,7 @@ import (
 	"time"
 )
 
-//go:embed ui.html portraits.js
+//go:embed ui.html portraits.js assets/portraits/*
 var embedded embed.FS
 
 const (
@@ -151,6 +151,33 @@ func main() {
 		w.Header().Set("Content-Type", "text/javascript; charset=utf-8")
 		w.Header().Set("Cache-Control", "no-store")
 		_, _ = w.Write(data)
+	})
+	mux.HandleFunc("/assets/portraits/", func(w http.ResponseWriter, r *http.Request) {
+		if r.Method != http.MethodGet {
+			http.Error(w, "Method not allowed", http.StatusMethodNotAllowed)
+			return
+		}
+		name := strings.TrimPrefix(r.URL.Path, "/assets/portraits/")
+		// Fixed allowlist of eight names prevents arbitrary embedded file reads.
+		switch name {
+		case "Belle.png", "Wise.png", "Remielle.png", "Sigrid.png",
+			"Claret.png", "Roxy.png", "Phoenix.png", "Severian.png":
+		default:
+			http.NotFound(w, r)
+			return
+		}
+		b, err := embedded.ReadFile("assets/portraits/" + name)
+		if err != nil {
+			http.NotFound(w, r)
+			return
+		}
+		if len(b) < 8 {
+			http.NotFound(w, r)
+			return
+		}
+		w.Header().Set("Cache-Control", "public, max-age=3600")
+		w.Header().Set("Content-Type", "image/png")
+		_, _ = w.Write(b)
 	})
 	mux.HandleFunc("/api/", app.api)
 	server := &http.Server{Handler: http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
