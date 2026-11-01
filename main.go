@@ -766,12 +766,20 @@ func (a *App) api(w http.ResponseWriter, r *http.Request) {
 		if r.Method != "POST" {
 			break
 		}
-		modName, err := importZIP(a.config.ModDir, r.URL.Query().Get("name"), io.LimitReader(r.Body, maxUpload+1))
+		modName, err := importArchive(a.config.ModDir, r.URL.Query().Get("name"), io.LimitReader(r.Body, maxUpload+1))
 		if err != nil {
 			apiFail(w, 400, err.Error())
 			return
 		}
 		jsonWrite(w, 200, map[string]string{"message": "Pacote importado: " + modName})
+		return
+	case "import-folder":
+		if r.Method != "POST" { break }
+		parts, err := r.MultipartReader()
+		if err != nil { apiFail(w, 400, "Pasta inválida"); return }
+		modName, err := importFolder(a.config.ModDir, r.URL.Query().Get("name"), parts)
+		if err != nil { apiFail(w, 400, err.Error()); return }
+		jsonWrite(w, 200, map[string]string{"message": "Pasta importada: " + modName})
 		return
 	case "agent-photo":
 		if r.Method != "GET" {
