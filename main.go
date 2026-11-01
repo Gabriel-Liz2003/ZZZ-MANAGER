@@ -732,12 +732,11 @@ func (a *App) api(w http.ResponseWriter, r *http.Request) {
 			return
 		}
 		selected := map[string]bool{}
-		for _, id := range ids {
-			selected[id] = true
-		}
+		// Saved IDs from older versions may refer to inner "resources" folders.
+		// Migrate them in memory to the package root without touching the disk.
 		// Do not partly apply profiles if a saved mod is missing or inherited-disabled.
 		for _, id := range ids {
-			m := findMod(mods, id)
+			m := findModForSavedProfile(mods, id)
 			if m == nil {
 				apiFail(w, 409, "Perfil contém mod não encontrado: "+id)
 				return
@@ -746,6 +745,7 @@ func (a *App) api(w http.ResponseWriter, r *http.Request) {
 				apiFail(w, 409, "Há pasta superior desativada: "+id)
 				return
 			}
+			selected[m.ID] = true
 		}
 		type change struct {
 			m  *Mod
