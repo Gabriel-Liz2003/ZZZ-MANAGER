@@ -22,6 +22,7 @@ type ModHotkey struct {
     Mode    string   `json:"mode"`
     File    string   `json:"file"`
     Condition string `json:"condition,omitempty"`
+    Disabled bool `json:"disabled"`
 }
 
 const maxHotkeyINIBytes = 2 << 20
@@ -111,7 +112,14 @@ func parseKeybinds(data []byte, source string) []ModHotkey {
     return all
 }
 
+// readModHotkeys preserves existing call sites for enabled INI files.
 func readModHotkeys(iniPath, modRoot string, existing []ModHotkey) []ModHotkey {
+    return readModHotkeysInFolder(iniPath, modRoot, existing, false)
+}
+
+// readModHotkeysInFolder also indexes disabled child folders for documentation,
+// but marks every shortcut as inactive so it cannot be mistaken for a usable key.
+func readModHotkeysInFolder(iniPath, modRoot string, existing []ModHotkey, disabled bool) []ModHotkey {
     if len(existing) >= maxModHotkeys { return existing }
     st, err := os.Stat(iniPath)
     if err != nil || st.Size() > maxHotkeyINIBytes || st.Size() < 0 { return existing }
@@ -122,6 +130,7 @@ func readModHotkeys(iniPath, modRoot string, existing []ModHotkey) []ModHotkey {
     for _, binding := range parseKeybinds(data, rel) {
         if len(existing) >= maxModHotkeys { break }
         // Keep independent declarations even if they share the same key.
+        binding.Disabled = disabled
         existing = append(existing, binding)
     }
     return existing
