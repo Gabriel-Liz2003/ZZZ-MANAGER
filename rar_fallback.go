@@ -1,12 +1,10 @@
 package main
 
 import (
-    "bufio"
     "bytes"
     "context"
     "errors"
     "fmt"
-    "io"
     "os"
     "os/exec"
     "path/filepath"
@@ -172,4 +170,3 @@ func importRARError(primary, fallback error) error {
         "Leitor interno: %v. Leitor do Windows: %v", primary, fallback)
 }
 
-var _ io.Reader = (*bytes.Buffer)(nil)
