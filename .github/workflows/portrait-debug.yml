@@ -6,23 +6,18 @@ jobs:
   probe:
     runs-on: ubuntu-latest
     steps:
-      - name: Inspect proxy picture sources
+      - name: Inspect proxy portraits API
         run: |
           python3 - <<'PY'
-          import urllib.request,re,html
-          urls=['https://assets.hoyotoon.com/?game=zzz&type=characters',
-            'https://zenless.hoyoverse.com/en-us/main?catchSpider=1',
-            'https://esports.gg/news/zenless-zone-zero-zzz/who-is-the-main-character-in-zenless-zone-zero-zzz/']
-          for url in urls:
-           print('URL:',url)
+          import urllib.request, urllib.parse, json
+          base='https://zenless-zone-zero.fandom.com/api.php'
+          for character in ['Belle','Wise']:
+           title='File:Agent_'+character+'_Portrait.png'
+           params=urllib.parse.urlencode({'action':'query','titles':title,'prop':'imageinfo','iiprop':'url','format':'json'})
            try:
-            req=urllib.request.Request(url,headers={'User-Agent':'Mozilla/5.0'})
-            content=urllib.request.urlopen(req,timeout=25).read().decode('utf-8','ignore')
-            print('LEN:',len(content))
-            for word in ('Belle','Wise','Phaethon','og:image','/assets/'):
-             matches=list(re.finditer(word,content,re.I))
-             print('KEY',word,'COUNT',len(matches))
-             for m in matches[:2]:
-              i=m.start();print('CTX',repr(content[max(0,i-450):i+190]))
-           except Exception as e:print('ERROR:',type(e).__name__,str(e))
+            req=urllib.request.Request(base+'?'+params,headers={'User-Agent':'Mozilla/5.0 (compatible; ZZZManager/3.3; contact:github.com/Gabriel-Liz2003/ZZZ-MANAGER)'})
+            response=urllib.request.urlopen(req,timeout=20)
+            raw=response.read().decode('utf-8')
+            print(character,"STATUS",response.status,"LENGTH",len(raw),"PREVIEW",raw[:700])
+           except Exception as e:print(character,'ERROR',type(e).__name__,str(e))
           PY
