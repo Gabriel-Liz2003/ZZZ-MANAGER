@@ -19,7 +19,7 @@ func TestRoxyOverallsPackageKeepsResourcesAndTogglesTogether(t *testing.T) {
  root:=makeMods(t)
  writeModFile(t,root,"RoxyOveralls/RoxyOveralls/toggles/Roxy.ini","[KeyShowMenu1]\nkey = h\n[TextureOverride]\nhash = aabbccdd\n")
  writeModFile(t,root,"RoxyOveralls/RoxyOveralls/DISABLED_resources/Roxy.ini","[KeyOldMenu]\nkey = v\n[TextureOverride]\nhash = ccddeeff\n")
- writeModFile(t,root,"RoxyOveralls/RoxyOveralls/Press H or / to open toggle menu.txt","press H")
+ writeModFile(t,root,"RoxyOveralls/RoxyOveralls/Press H or F to open toggle menu.txt","press H")
  writeModFile(t,root,"RoxyOveralls/RoxyOveralls/textures/image.png","png")
 
  mods,conflicts,err:=scanMods(root,nil)
