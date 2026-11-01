@@ -1,6 +1,15 @@
-# NEON/MODS — ZZZ Mod Desk v3.3.2
+# NEON/MODS — ZZZ Mod Desk v3.3.3
 
 Gerenciador de mods do Zenless Zone Zero para Windows, com suporte à pasta `Mods` do ZZMI / XXMI.
+
+## Atalhos em subpastas desativadas (v3.3.3)
+
+Pacotes com várias camadas, como `Mods/[HC] Roxy.../[HC] Roxy.../DISABLED_[HC] Roxy.../*.ini`, podem incluir atalhos mesmo nas variantes desativadas. Agora o leitor varre os `.ini` de **todo o pacote**:
+
+- Mostra os atalhos das variantes ativas e também os encontrados em subpastas `DISABLED_`.
+- Cada atalho de uma pasta desativada aparece com aviso **Pasta desativada — atalho apenas para referência**. Isso **não ativa** a variante desativada.
+- As teclas são ordenadas, priorizando as fontes ativas; a detecção continua em modo somente leitura.
+- Pastas `DISABLED_` continuam excluídas da detecção de conflitos de hashes para não gerar falsos avisos.
 
 ## Retratos corrigidos (v3.3.1)
 
