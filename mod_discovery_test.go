@@ -2,6 +2,8 @@ package main
 
 import (
  "os"
+ "net/http/httptest"
+ "strings"
  "path/filepath"
  "testing"
 )
@@ -69,4 +71,29 @@ func TestNestedPackageConflictOnlyBetweenActualMods(t *testing.T) {
  if err!=nil {t.Fatal(err)}
  if len(mods)!=2 || len(conflicts)!=1 {t.Fatalf("expected two real mods and one cross-mod conflict: %d / %#v",len(mods),conflicts)}
  if len(conflicts[0].ModIDs)!=2 {t.Fatal("nested resources/toggles must not count as independent conflict owners")}
+}
+
+func TestLegacyResourcesProfileRemainsApplicable(t *testing.T) {
+ root:=makeMods(t)
+ writeModFile(t,root,"RoxyOveralls/RoxyOveralls/toggles/Roxy.ini","[KeyMenu]\\nkey = h\\n")
+ writeModFile(t,root,"RoxyOveralls/RoxyOveralls/resources/Roxy.ini","[TextureOverride]\\nhash=12345678\\n")
+ writeModFile(t,root,"Rina Dress/mod.ini","[TextureOverride]\\nhash=87654321\\n")
+ mods,_,err:=scanMods(root,nil)
+ if err!=nil {t.Fatal(err)}
+ if len(mods)!=2 {t.Fatalf("expected consolidated Roxy plus Rina, got %d",len(mods))}
+ selected:=findModForSavedProfile(mods,"RoxyOveralls/RoxyOveralls/resources")
+ if selected==nil || selected.ID!="RoxyOveralls" {t.Fatalf("legacy ID not resolved: %#v",selected)}
+ // Simulate real API applying an old saved preset with a child-folder ID.
+ a:=&App{token:"test",configFile:filepath.Join(t.TempDir(),"config.json"),config:Config{
+  ModDir:root,Tags:map[string]string{},Profiles:map[string][]string{
+    "Roxy":{"RoxyOveralls/RoxyOveralls/resources"},
+  },
+ }}
+ req:=httptest.NewRequest("POST","/api/apply-profile",strings.NewReader(`{"name":"Roxy","scope":"Roxy"}`))
+ req.Header.Set("X-Desk-Token","test")
+ rec:=httptest.NewRecorder()
+ a.api(rec,req)
+ if rec.Code!=200 {t.Fatalf("old profile should apply: %d %s",rec.Code,rec.Body.String())}
+ if _,err:=os.Stat(filepath.Join(root,"Rina Dress","mod.ini"));err!=nil{t.Fatal("Rina mod affected",err)}
+ if _,err:=os.Stat(filepath.Join(root,"RoxyOveralls","RoxyOveralls","toggles","Roxy.ini"));err!=nil{t.Fatal(err)}
 }
