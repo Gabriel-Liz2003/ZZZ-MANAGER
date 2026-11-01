@@ -1,6 +1,14 @@
-# NEON/MODS — ZZZ Mod Desk v3.3.0
+# NEON/MODS — ZZZ Mod Desk v3.3.1
 
 Gerenciador de mods do Zenless Zone Zero para Windows, com suporte à pasta `Mods` do ZZMI / XXMI.
+
+## Retratos corrigidos (v3.3.1)
+
+Os retratos da **Belle, Wise, Remielle, Sigrid, Claret, Roxy, Phoenix e Severian** agora são incluídos diretamente no executável Windows. Eles aparecem sem conexão com a internet; os demais retratos continuam vindo da CDN oficial, quando disponível. As fotos personalizadas que você já definiu continuam tendo prioridade.
+
+Os arquivos de arte são baixados e normalizados na etapa de compilação `scripts/download_portraits.py`; o GitHub Actions usa Pillow para converter formatos retornados pelas fontes. Os seis agentes mais recentes usam imagens da [HoYoverse](https://zenless.hoyoverse.com/en-us/main?catchSpider=1); Belle e Wise usam os retratos do jogo catalogados pela [Zenless Zone Zero Wiki](https://zenless-zone-zero.fandom.com/wiki/Category:Agent_Portraits). As artes pertencem a HoYoverse / miHoYo.
+
+Para compilar localmente, execute `python -m pip install pillow` e `python scripts/download_portraits.py` antes de `go test ./...` e `go build .`.
 
 ## Instalação
 
