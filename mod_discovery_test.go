@@ -30,7 +30,7 @@ func TestRoxyOverallsPackageKeepsResourcesAndTogglesTogether(t *testing.T) {
   t.Fatalf("wrong root/character: %#v",mod)
  }
  if mod.IniCount!=2 {t.Fatalf("should count package INIs, got %d",mod.IniCount)}
- if len(mod.Hotkeys)!=1 || mod.Hotkeys[0].Keys[0]!="h" {t.Fatalf("wrong active shortcuts: %#v",mod.Hotkeys)}
+ if len(mod.Hotkeys)!=2 || mod.Hotkeys[0].Keys[0]!="h" || mod.Hotkeys[0].Disabled || mod.Hotkeys[1].Keys[0]!="v" || !mod.Hotkeys[1].Disabled {t.Fatalf("active and disabled commands not correctly distinguished: %#v",mod.Hotkeys)}
  if mod.hashes["ccddeeff"] || !mod.hashes["aabbccdd"] {t.Fatal("disabled resources should not contribute hashes")}
  if len(conflicts)!=0 {t.Fatalf("nested resources may not produce duplicate conflicts: %#v",conflicts)}
  if err:=toggleMod(mod,false);err!=nil{t.Fatal(err)}
@@ -96,4 +96,30 @@ func TestLegacyResourcesProfileRemainsApplicable(t *testing.T) {
  if rec.Code!=200 {t.Fatalf("old profile should apply: %d %s",rec.Code,rec.Body.String())}
  if _,err:=os.Stat(filepath.Join(root,"Rina Dress","mod.ini"));err!=nil{t.Fatal("Rina mod affected",err)}
  if _,err:=os.Stat(filepath.Join(root,"RoxyOveralls","RoxyOveralls","toggles","Roxy.ini"));err!=nil{t.Fatal(err)}
+}
+
+func TestDisabledNestedHCFolderShortcutIsShownButInactive(t *testing.T) {
+ root:=makeMods(t)
+ name:="[HC] Roxy - OG Edit & Bunny Hoodie"
+ path:=name+"/"+name+"/DISABLED_"+name+"/Toggles/Roxy.ini"
+ writeModFile(t,root,path,"[KeyToggleHoodie]\nkey = VK_F10\ntype = cycle\n")
+ writeModFile(t,root,name+"/"+name+"/resources/Body.ini","[TextureOverrideBody]\nhash=deadbeef\n")
+ mods,conflicts,err:=scanMods(root,nil)
+ if err!=nil {t.Fatal(err)}
+ if len(mods)!=1 {t.Fatalf("expected one package, got %d",len(mods))}
+ if mods[0].Character!="Roxy" || !mods[0].Enabled {t.Fatalf("wrong character or mod status: %#v",mods[0])}
+ keys:=mods[0].Hotkeys
+ if len(keys)!=1 || keys[0].Keys[0]!="VK_F10" || !keys[0].Disabled {
+  t.Fatalf("disabled nested shortcut must still appear, marked inactive: %#v",keys)
+ }
+ if len(conflicts)!=0 {t.Fatalf("false conflicts: %#v",conflicts)}
+}
+func TestDisabledTopLevelModStillShowsKeysAsInactive(t *testing.T) {
+ root:=makeMods(t)
+ writeModFile(t,root,"DISABLED_Roxy Dress/mod.ini","[KeyCycleOutfit]\nkey = VK_HOME\n")
+ mods,_,err:=scanMods(root,nil)
+ if err!=nil {t.Fatal(err)}
+ if len(mods)!=1 || len(mods[0].Hotkeys)!=1 || !mods[0].Hotkeys[0].Disabled {
+  t.Fatalf("disabled mod should show only informational keys: %#v",mods)
+ }
 }
