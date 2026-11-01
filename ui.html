@@ -1,0 +1,588 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>NEON/MODS — ZZZ Mod Desk</title>
+<style>
+:root{
+  color-scheme: dark;
+  --bg:#090b11;
+  --bg2:#101522;
+  --panel:#111827;
+  --panel2:#0f1725;
+  --panel3:#171f31;
+  --line:#273247;
+  --line2:#31415e;
+  --text:#edf3ff;
+  --muted:#9dacbf;
+  --muted2:#7d8ca0;
+  --lime:#c6ff48;
+  --cyan:#67e8f9;
+  --pink:#ff77cf;
+  --gold:#f8c45d;
+  --green:#61f0a8;
+  --danger:#ff7f8f;
+  --shadow:0 20px 60px rgba(0,0,0,.34);
+  --radius:22px;
+}
+*{box-sizing:border-box}
+html,body{height:100%}
+body{margin:0;background:
+ radial-gradient(90rem 50rem at -10% -20%, rgba(103,232,249,.10), transparent 35%),
+ radial-gradient(55rem 40rem at 110% 0%, rgba(255,119,207,.10), transparent 30%),
+ linear-gradient(180deg,#07090f,#0b0f17 55%,#090b11);
+ color:var(--text);font:14px/1.5 Inter,Segoe UI,Arial,sans-serif;overflow:hidden}
+button,input,select{font:inherit}button{cursor:pointer}button:disabled{cursor:not-allowed;opacity:.55}
+a{color:inherit}
+input,select{outline:none}
+button:focus-visible,input:focus-visible,select:focus-visible{outline:2px solid var(--lime);outline-offset:2px}
+.app{display:grid;grid-template-columns:280px 1fr;height:100vh}
+.sidebar{position:relative;padding:22px 18px 18px;border-right:1px solid rgba(255,255,255,.05);background:linear-gradient(180deg,rgba(16,21,34,.95),rgba(8,10,16,.95));backdrop-filter:blur(10px);overflow:auto}
+.brand{display:flex;align-items:center;gap:14px;padding:8px 6px 18px}
+.brand-mark{width:48px;height:48px;border-radius:16px;background:linear-gradient(135deg,var(--lime),#a9ff00 45%,#f3ffb2);display:grid;place-items:center;color:#151a05;font-size:23px;font-weight:1000;box-shadow:0 10px 30px rgba(198,255,72,.22)}
+.brand h1{font-size:20px;line-height:1;margin:0;font-weight:900;letter-spacing:.02em}
+.brand p{margin:5px 0 0;font-size:11px;letter-spacing:.24em;text-transform:uppercase;color:var(--muted);font-weight:800}
+.sidegroup{margin-top:14px}
+.sidelabel{font-size:11px;letter-spacing:.18em;text-transform:uppercase;color:#66758b;font-weight:800;padding:0 12px 8px}
+.nav{display:grid;gap:8px}
+.navbtn{width:100%;display:flex;align-items:center;gap:12px;padding:14px 14px;border:1px solid transparent;border-radius:16px;background:transparent;color:#c8d2e0;text-align:left;font-weight:700;transition:.18s}
+.navbtn:hover{background:rgba(255,255,255,.04);border-color:rgba(255,255,255,.05);transform:translateY(-1px)}
+.navbtn.active{background:linear-gradient(180deg,rgba(198,255,72,.13),rgba(198,255,72,.08));border-color:rgba(198,255,72,.20);color:#effbd2;box-shadow:inset 0 0 0 1px rgba(198,255,72,.08)}
+.navbtn .ico{display:grid;place-items:center;width:22px;height:22px;font-size:17px;opacity:.92}
+.sidecard{margin-top:18px;background:linear-gradient(180deg,rgba(255,255,255,.03),rgba(255,255,255,.015));border:1px solid rgba(255,255,255,.06);border-radius:20px;padding:16px 16px 14px;box-shadow:var(--shadow)}
+.sidecard .tag{display:inline-flex;align-items:center;gap:6px;padding:5px 9px;border-radius:999px;background:rgba(103,232,249,.10);border:1px solid rgba(103,232,249,.14);color:var(--cyan);font-size:10px;font-weight:900;letter-spacing:.16em;text-transform:uppercase}
+.sidecard h3{font-size:16px;margin:12px 0 6px}
+.sidecard p{margin:0;color:var(--muted);font-size:12px;line-height:1.6}
+.sidefoot{display:grid;gap:8px;margin-top:16px}
+.sideghost{padding:11px 12px;border-radius:14px;border:1px solid rgba(255,255,255,.07);background:rgba(255,255,255,.02);color:#d7e1ee;font-weight:700}
+.sideghost:hover{background:rgba(255,255,255,.05)}
+.content{display:flex;flex-direction:column;min-width:0;height:100vh}
+.topbar{display:flex;align-items:center;justify-content:space-between;gap:18px;padding:24px 28px 18px;border-bottom:1px solid rgba(255,255,255,.05);background:linear-gradient(180deg,rgba(10,14,22,.84),rgba(10,14,22,.66));backdrop-filter:blur(12px)}
+.titlewrap small{display:block;color:var(--lime);font-size:11px;text-transform:uppercase;letter-spacing:.2em;font-weight:900;margin-bottom:5px}
+.titlewrap h2{margin:0;font-size:30px;letter-spacing:-.04em;line-height:1.1}
+.titlewrap p{margin:7px 0 0;color:var(--muted)}
+.topactions{display:flex;gap:10px;flex-wrap:wrap;justify-content:flex-end}
+.btn{appearance:none;border:1px solid rgba(255,255,255,.08);background:linear-gradient(180deg,rgba(255,255,255,.06),rgba(255,255,255,.03));padding:12px 15px;border-radius:16px;color:var(--text);font-weight:800;display:inline-flex;align-items:center;justify-content:center;gap:9px;transition:.16s;box-shadow:0 8px 24px rgba(0,0,0,.15)}
+.btn:hover{transform:translateY(-1px);filter:brightness(1.08)}
+.btn.primary{background:linear-gradient(180deg,#d8ff7d,#c6ff48);border-color:rgba(198,255,72,.65);color:#192207}
+.btn.ghost{background:transparent}
+.btn.danger{background:linear-gradient(180deg,rgba(255,127,143,.18),rgba(255,127,143,.09));border-color:rgba(255,127,143,.22);color:#ffd1d7}
+.btn.small{padding:9px 11px;border-radius:13px;font-size:12px}
+.btn.icon{width:40px;height:40px;padding:0}
+.statusrow{display:flex;gap:12px;align-items:center;padding:12px 28px 0;flex-wrap:wrap}
+.statuspill{display:flex;align-items:center;gap:9px;min-height:42px;padding:9px 14px;border-radius:999px;border:1px solid rgba(198,255,72,.16);background:rgba(198,255,72,.08);color:#def0a4;font-size:12px}
+.statuspill.warn{border-color:rgba(248,196,93,.25);background:rgba(248,196,93,.08);color:#f4d8a6}
+.statuspill .path{max-width:580px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.main{padding:22px 28px 30px;overflow:auto}
+.page{display:none;animation:fade .18s ease}
+.page.active{display:block}
+@keyframes fade{from{opacity:.45;transform:translateY(6px)}to{opacity:1;transform:none}}
+.hero{position:relative;overflow:hidden;background:
+ radial-gradient(50rem 20rem at 100% 0, rgba(255,119,207,.18), transparent 40%),
+ radial-gradient(50rem 30rem at 0 100%, rgba(103,232,249,.16), transparent 32%),
+ linear-gradient(135deg,#141c2e,#111725 45%,#0d121d);
+ border:1px solid rgba(255,255,255,.06);border-radius:28px;padding:24px 24px 22px;box-shadow:var(--shadow)}
+.hero:after{content:"";position:absolute;right:-60px;top:-45px;width:240px;height:240px;border-radius:50%;border:22px solid rgba(255,255,255,.03)}
+.hero-grid{display:grid;grid-template-columns:1.2fr .8fr;gap:20px;align-items:end}
+.hero h3{font-size:32px;line-height:1.05;margin:0 0 10px;letter-spacing:-.05em}
+.hero p{color:var(--muted);margin:0 0 18px;max-width:740px}
+.quickchips{display:flex;flex-wrap:wrap;gap:9px;margin-top:18px}
+.quickchip{padding:8px 12px;border-radius:999px;background:rgba(255,255,255,.04);border:1px solid rgba(255,255,255,.06);color:#d4dceb;font-size:12px;font-weight:700}
+.hero-side{display:grid;gap:12px}
+.signal{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+.stat{position:relative;overflow:hidden;background:linear-gradient(180deg,rgba(255,255,255,.05),rgba(255,255,255,.025));border:1px solid rgba(255,255,255,.06);border-radius:22px;padding:18px 18px 16px;min-height:112px}
+.stat::before{content:"";position:absolute;right:-20px;bottom:-30px;width:110px;height:110px;border-radius:28px;border:16px solid rgba(255,255,255,.03);transform:rotate(16deg)}
+.stat small{display:block;text-transform:uppercase;letter-spacing:.16em;color:var(--muted2);font-size:11px;font-weight:800}
+.stat strong{display:block;font-size:34px;line-height:1;margin:10px 0 8px;letter-spacing:-.04em}
+.stat p{margin:0;color:var(--muted);font-size:12px}
+.section{margin-top:26px}
+.sectionhead{display:flex;align-items:end;justify-content:space-between;gap:16px;margin-bottom:14px}
+.sectionhead h3{margin:0;font-size:22px;letter-spacing:-.03em}
+.sectionhead p{margin:6px 0 0;color:var(--muted);font-size:13px}
+.toolbar{display:flex;gap:10px;flex-wrap:wrap}
+.grid{display:grid;gap:16px}
+.grid.stats4{grid-template-columns:repeat(4,minmax(0,1fr))}
+.grid.cards3{grid-template-columns:repeat(3,minmax(0,1fr))}
+.grid.cards4{grid-template-columns:repeat(4,minmax(0,1fr))}
+.grid.cards5{grid-template-columns:repeat(5,minmax(0,1fr))}
+.filterbar{display:flex;gap:10px;flex-wrap:wrap;margin-bottom:16px}
+.search{display:flex;align-items:center;gap:10px;min-width:240px;flex:1;padding:0 14px;border-radius:16px;border:1px solid rgba(255,255,255,.07);background:rgba(255,255,255,.03)}
+.search input{border:0;background:transparent;color:var(--text);padding:12px 0;flex:1;min-width:0}
+.search input::placeholder{color:#718096}
+.select, .field{min-width:170px;padding:11px 14px;border-radius:16px;border:1px solid rgba(255,255,255,.07);background:rgba(255,255,255,.03);color:var(--text)}
+.chips{display:flex;gap:8px;flex-wrap:wrap;margin-top:10px}
+.chip{padding:7px 12px;border-radius:999px;border:1px solid rgba(255,255,255,.08);background:rgba(255,255,255,.03);color:#c7d0de;font-size:12px;font-weight:700;cursor:pointer}
+.chip.active{background:rgba(198,255,72,.12);border-color:rgba(198,255,72,.24);color:#ebf9c8}
+.card{position:relative;overflow:hidden;background:linear-gradient(180deg,rgba(255,255,255,.04),rgba(255,255,255,.025));border:1px solid rgba(255,255,255,.06);border-radius:24px;box-shadow:var(--shadow)}
+.modcard{display:flex;flex-direction:column;min-height:100%}
+.visual{position:relative;height:185px;background:linear-gradient(135deg,#1a2437,#111625 60%,#0c1019);overflow:hidden}
+.visual img{display:block;width:100%;height:100%;object-fit:cover;object-position:top}
+.visual .fallback{position:absolute;inset:0;display:grid;place-items:center}
+.visual .fallback .mono{font-size:76px;font-weight:1000;letter-spacing:-.08em;color:rgba(255,255,255,.08)}
+.visual .fallback .submono{position:absolute;bottom:18px;left:18px;color:#eff5ff;font-size:18px;font-weight:900;max-width:75%}
+.visual .fallback .line{position:absolute;inset:auto 16px 12px 16px;height:1px;background:linear-gradient(90deg,rgba(198,255,72,.75),transparent)}
+.badge{position:absolute;top:14px;left:14px;padding:6px 10px;border-radius:999px;font-size:10px;font-weight:900;letter-spacing:.12em;text-transform:uppercase;border:1px solid rgba(255,255,255,.08);backdrop-filter:blur(10px)}
+.badge.on{background:rgba(97,240,168,.15);color:#bdf9d9;border-color:rgba(97,240,168,.20)}
+.badge.off{background:rgba(130,145,166,.18);color:#d1d8e2;border-color:rgba(255,255,255,.10)}
+.badge.right{left:auto;right:14px}
+.badge.warn{background:rgba(248,196,93,.14);color:#f9dd9d;border-color:rgba(248,196,93,.20)}
+.cardbody{padding:16px 16px 15px}
+.title{font-size:18px;font-weight:900;letter-spacing:-.03em;line-height:1.2;margin:0 0 5px}
+.subtitle{color:var(--cyan);font-size:12px;font-weight:800;letter-spacing:.08em;text-transform:uppercase}
+.meta{display:flex;gap:8px;flex-wrap:wrap;margin-top:11px}
+.mini{padding:5px 8px;border-radius:999px;background:rgba(255,255,255,.03);border:1px solid rgba(255,255,255,.06);color:#b8c4d4;font-size:11px;font-weight:700}
+.row{display:flex;gap:8px;align-items:center;flex-wrap:wrap}
+.cardactions{display:flex;align-items:center;gap:8px;flex-wrap:wrap;margin-top:14px;padding-top:13px;border-top:1px solid rgba(255,255,255,.06)}
+.push{margin-left:auto}
+.switch{position:relative;display:inline-flex;align-items:center;width:48px;height:28px;border-radius:999px;border:1px solid rgba(255,255,255,.08);background:#364152;padding:3px;cursor:pointer;transition:.16s}
+.switch .knob{width:20px;height:20px;border-radius:50%;background:#f2f6fb;transition:.16s}
+.switch.on{background:linear-gradient(180deg,#d7ff79,#c6ff48)}
+.switch.on .knob{transform:translateX(20px);background:#1a2307}
+.switchlabel{font-size:12px;font-weight:800;color:#dce4ef}
+.panel{background:linear-gradient(180deg,rgba(255,255,255,.04),rgba(255,255,255,.025));border:1px solid rgba(255,255,255,.06);border-radius:24px;padding:20px;box-shadow:var(--shadow)}
+.panel h4{margin:0 0 8px;font-size:18px}
+.panel p{margin:0;color:var(--muted)}
+.agentgrid{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:16px}
+.agentcard{overflow:hidden}
+.agentportrait{position:relative;height:210px;background:linear-gradient(135deg,#1a2337,#0d1320 65%,#0b0f17)}
+.agentportrait img{width:100%;height:100%;object-fit:cover;display:block}
+.agentshade{position:absolute;inset:0;background:linear-gradient(180deg,transparent 18%,rgba(5,7,12,.10) 45%,rgba(5,7,12,.94) 100%)}
+.agentname{position:absolute;left:16px;bottom:16px;right:16px;display:flex;align-items:end;justify-content:space-between;gap:8px}
+.agentname strong{font-size:20px;line-height:1.05;letter-spacing:-.04em}
+.agentname span{display:block;color:#cbdae8;font-size:12px}
+.agentstats{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:10px;margin-top:14px}
+.agentstats .box{padding:10px 11px;border-radius:16px;background:rgba(255,255,255,.03);border:1px solid rgba(255,255,255,.05)}
+.agentstats .box small{display:block;color:var(--muted2);text-transform:uppercase;font-size:10px;letter-spacing:.14em;font-weight:800}
+.agentstats .box strong{display:block;margin-top:7px;font-size:21px;line-height:1}
+.agentactions{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-top:14px}
+.list{display:grid;gap:12px}
+.profileitem{display:flex;align-items:center;justify-content:space-between;gap:16px;padding:16px 18px;border-radius:20px;background:rgba(255,255,255,.03);border:1px solid rgba(255,255,255,.06)}
+.profilemeta strong{display:block;font-size:16px}
+.profilemeta span{color:var(--muted);font-size:12px}
+.conflict{padding:16px;border-radius:20px;border:1px solid rgba(248,196,93,.18);background:rgba(248,196,93,.06)}
+.conflict strong{display:block;font-size:15px;color:#ffe7ac}
+.conflict p{margin:7px 0 0;color:#d7c8a4;font-size:13px}
+.empty{padding:44px 22px;text-align:center;border:1px dashed rgba(255,255,255,.10);border-radius:24px;background:rgba(255,255,255,.02)}
+.empty .big{font-size:46px}
+.empty h4{margin:10px 0 6px;font-size:22px}
+.empty p{margin:0 auto 16px;max-width:520px;color:var(--muted)}
+.formgrid{display:grid;grid-template-columns:1.2fr .8fr;gap:18px}
+.fieldblock{display:grid;gap:8px;margin-top:16px}
+.fieldblock label{font-size:11px;text-transform:uppercase;letter-spacing:.16em;color:#9babc1;font-weight:900}
+.note{font-size:12px;color:var(--muted)}
+.toast{position:fixed;right:24px;bottom:24px;z-index:60;padding:13px 16px;border-radius:16px;background:rgba(12,15,24,.96);border:1px solid rgba(198,255,72,.18);color:#effad1;box-shadow:var(--shadow);max-width:380px;opacity:0;transform:translateY(10px);pointer-events:none;transition:.18s}
+.toast.show{opacity:1;transform:none}
+.toast.bad{border-color:rgba(255,127,143,.18);color:#ffd4da}
+.drop{position:fixed;inset:18px;display:none;align-items:center;justify-content:center;z-index:50;border-radius:30px;border:2px dashed rgba(198,255,72,.6);background:rgba(6,10,15,.88);backdrop-filter:blur(10px)}
+.drop.show{display:flex}
+.dropbox{text-align:center;padding:22px}.dropbox h4{font-size:34px;margin:0 0 10px}.dropbox p{margin:0;color:var(--muted)}
+.hide{display:none !important}
+@media (max-width: 1440px){.agentgrid{grid-template-columns:repeat(3,minmax(0,1fr))}.grid.cards4{grid-template-columns:repeat(3,minmax(0,1fr))}.grid.stats4{grid-template-columns:repeat(2,minmax(0,1fr))}}
+@media (max-width: 1180px){body{overflow:auto}.app{grid-template-columns:1fr;height:auto;min-height:100vh}.sidebar{height:auto;position:relative;border-right:0;border-bottom:1px solid rgba(255,255,255,.05)}.content,.main{height:auto}.hero-grid,.formgrid{grid-template-columns:1fr}.agentgrid,.grid.cards3,.grid.cards4,.grid.cards5{grid-template-columns:repeat(2,minmax(0,1fr))}}
+@media (max-width: 760px){.topbar,.statusrow,.main{padding-left:16px;padding-right:16px}.topbar{flex-direction:column;align-items:flex-start}.agentgrid,.grid.cards3,.grid.cards4,.grid.cards5,.grid.stats4{grid-template-columns:1fr}.profileitem{flex-direction:column;align-items:flex-start}.hero h3{font-size:26px}}
+.agentportrait{border-bottom:2px solid var(--agent-accent,#b9ff73)}
+.agentportrait:before{content:'';position:absolute;inset:-60% -70% auto auto;width:230px;height:230px;background:var(--agent-accent,#b9ff73);filter:blur(100px);opacity:.11;z-index:1;pointer-events:none}
+.favorite-btn{font-size:22px;color:#93a2b8;background:transparent;border:1px solid rgba(255,255,255,.06);border-radius:12px;padding:3px 10px;line-height:1}
+.favorite-btn.saved{color:var(--gold);background:rgba(248,196,93,.11);border-color:rgba(248,196,93,.24)}
+.agentportrait img{object-position:50% 25%}
+#agentResult .empty{grid-column:1/-1}
+</style>
+</head>
+<body>
+<div class="app">
+  <aside class="sidebar">
+    <div class="brand">
+      <div class="brand-mark">⚡</div>
+      <div>
+        <h1>NEON/MODS</h1>
+        <p>ZENLESS ZONE ZERO DESK</p>
+      </div>
+    </div>
+
+    <div class="sidegroup">
+      <div class="sidelabel">Navegação</div>
+      <div class="nav" id="nav"></div>
+    </div>
+
+    <div class="sidecard">
+      <div class="tag">ZZMI Ready</div>
+      <h3>Perfis por agente</h3>
+      <p>Salve um conjunto diferente de mods para cada personagem e aplique depois com um clique.</p>
+      <div class="sidefoot">
+        <button class="sideghost" id="quickLibrary">Abrir biblioteca</button>
+        <button class="sideghost" id="quickAgents">Ver agentes</button>
+      </div>
+    </div>
+
+    <div class="sidecard">
+      <div class="tag">Dica</div>
+      <p><b>Desativar</b> não apaga o mod. O app usa o prefixo <code>DISABLED_</code>, igual ao fluxo comum do ZZMI.</p>
+    </div>
+
+    <div class="sidefoot" style="margin-top:16px">
+      <button class="sideghost" id="openModsFolderSide">Abrir pasta Mods</button>
+      <button class="sideghost" id="quitBtn">Fechar aplicativo</button>
+    </div>
+  </aside>
+
+  <section class="content">
+    <div class="topbar">
+      <div class="titlewrap">
+        <small id="pageEyebrow">Painel</small>
+        <h2 id="pageTitle">Seu hub de mods do ZZZ</h2>
+        <p id="pageSubtitle">Organize skins, previews, conflitos e perfis sem tocar em terminal.</p>
+      </div>
+      <div class="topactions">
+        <button class="btn ghost" id="checkUpdatesTop">⬆ Verificar versão</button>
+        <button class="btn ghost" id="refreshBtn">↻ Atualizar biblioteca</button>
+        <button class="btn" id="openModsFolderTop">📁 Abrir pasta Mods</button>
+        <button class="btn primary" id="importBtn">＋ Instalar ZIP</button>
+      </div>
+    </div>
+    <div class="statusrow">
+      <div class="statuspill" id="statusPill">● Aguardando leitura da biblioteca…</div>
+      <div class="statuspill warn"><span>📦</span><span>Arraste um arquivo <b>.zip</b> para qualquer lugar da janela para instalar.</span></div>
+    </div>
+    <main class="main">
+      <section class="page active" id="page-overview"></section>
+      <section class="page" id="page-library"></section>
+      <section class="page" id="page-agents"></section>
+      <section class="page" id="page-profiles"></section>
+      <section class="page" id="page-conflicts"></section>
+      <section class="page" id="page-settings"></section>
+    </main>
+  </section>
+</div>
+
+<input id="zipFile" type="file" accept=".zip" class="hide">
+<input id="photoFile" type="file" accept="image/png,image/jpeg,image/webp" class="hide">
+<div class="drop" id="dropOverlay"><div class="dropbox"><h4>Solta o ZIP aí</h4><p>Eu instalo o mod e já atualizo a biblioteca.</p></div></div>
+<div class="toast" id="toast"></div>
+
+<script src="/assets/portraits.js"></script>
+<script>
+const TOKEN='__APP_TOKEN__';
+const PAGES=[
+  {id:'overview',label:'Painel',icon:'⌂',title:'Seu hub de mods do ZZZ',subtitle:'Visão geral da biblioteca, favoritos e estado dos perfis.'},
+  {id:'library',label:'Biblioteca',icon:'☷',title:'Biblioteca de mods',subtitle:'Ative, desative, filtre e organize seus mods com preview.'},
+  {id:'agents',label:'Agentes',icon:'◈',title:'Perfis por agente',subtitle:'Um perfil visual para cada agente do ZZZ, com ações rápidas.'},
+  {id:'profiles',label:'Perfis',icon:'✦',title:'Perfis personalizados',subtitle:'Gerencie presets gerais fora dos perfis automáticos dos agentes.'},
+  {id:'conflicts',label:'Conflitos',icon:'⚠',title:'Conflitos de hash',subtitle:'Veja mods que mexem nos mesmos hashes e podem se sobrepor.'},
+  {id:'settings',label:'Configurações',icon:'⚙',title:'Configurações',subtitle:'Aponte a pasta Mods do ZZMI e ajuste a organização da biblioteca.'},
+];
+const AGENTS=[
+  'Nangong','Sunna','Remielle','Ye Shunguang','Aria','Norma','Velina','Pyrois','Promeia','Cissia','Dialyn','Banyue','Zhao','Seed','Orphie','Lucia','Yidhari','Alice','Yuzuha','Ju Fufu','Pan Yinhu','Yixuan','Hugo','Vivian','Trigger','Soldier 0','Astra','Evelyn','Harumasa','Yanagi','Lighter','Miyabi','Burnice','Caesar','Jane','Seth','Qingyi','Zhu Yuan','Ellen','Nicole','Anby','Billy','Nekomata','Koleda','Grace','Rina','Soldier 11','Lucy','Piper','Anton','Ben','Lycaon','Soukaku','Corin','Belle','Wise','Roxy','Claret','Sigrid','Phoenix','Severian','Pulchra','Komano Manato','Starlight Billy'
+];
+const FACTIONS={
+  'Nangong':'Angels of Delusion','Sunna':'Angels of Delusion','Aria':'Angels of Delusion',
+  'Roxy':'Flint Workshop','Claret':'Flint Workshop','Phoenix':'Krampus','Promeia':'Krampus','Zhao':'Krampus',
+  'Sigrid':'Airspace Patrol','Norma':'External Strategy','Velina':'External Strategy','Remielle':'Covenant of Dayat',
+  'Zhu Yuan':'N.E.P.S.','Qingyi':'N.E.P.S.','Seth':'N.E.P.S.','Jane':'N.E.P.S.','Cissia':'N.E.P.S.','Severian':'N.E.P.S.',
+  'Anby':'Cunning Hares','Nicole':'Cunning Hares','Billy':'Cunning Hares','Nekomata':'Cunning Hares',
+  'Koleda':'Belobog','Grace':'Belobog','Anton':'Belobog','Ben':'Belobog',
+  'Rina':'Victoria','Corin':'Victoria','Lycaon':'Victoria','Ellen':'Victoria',
+  'Miyabi':'Section 6','Yanagi':'Section 6','Soukaku':'Section 6','Harumasa':'Section 6',
+  'Caesar':'Calydon','Burnice':'Calydon','Lucy':'Calydon','Piper':'Calydon','Lighter':'Calydon',
+  'Astra':'Stars of Lyra','Evelyn':'Stars of Lyra','Yixuan':'Yunkui Summit','Ju Fufu':'Yunkui Summit','Pan Yinhu':'Yunkui Summit',
+  'Alice':'Spook Shack','Yuzuha':'Spook Shack','Vivian':'Mockingbird','Hugo':'Mockingbird',
+  'Seed':'Obol Squad','Trigger':'Obol Squad','Soldier 11':'Obol Squad',
+  'Belle':'Phaethon','Wise':'Phaethon','Pyrois':'Phaethon',
+  'Orphie':'Firefly Knights','Starlight Billy':'Cunning Hares'
+};
+const FACTION_COLORS={
+  'Angels of Delusion':'#ff83da','Flint Workshop':'#f6a970','Krampus':'#ff6b9b','Airspace Patrol':'#74e5fb','External Strategy':'#ffc76d',
+  'Covenant of Dayat':'#d6a2ff','N.E.P.S.':'#8bc8ff','Cunning Hares':'#c9fd53','Belobog':'#fac46f','Victoria':'#aa9aff',
+  'Section 6':'#79cfff','Calydon':'#ff9b67','Stars of Lyra':'#ffa7cb','Yunkui Summit':'#7ee1cc','Spook Shack':'#b0ed84',
+  'Mockingbird':'#cd91ff','Obol Squad':'#94d2ff','Phaethon':'#a7f0b8','Firefly Knights':'#ffcd80'
+};
+function factionOf(name){return FACTIONS[name]||'Independente'}
+function colorOf(name){return FACTION_COLORS[factionOf(name)]||'#b8a5ff'}
+function portraitURL(name){const part=OFFICIAL_PORTRAITS[name];return part?'https://fastcdn.hoyoverse.com/content-v2/nap/'+part:''}
+function portraitTag(name){const url=portraitURL(name);const src=customImageNames.has(name)?'/api/agent-photo?name='+encodeURIComponent(name)+'&token='+encodeURIComponent(TOKEN)+'&v='+photoVersion:(url||portraitData(name));return '<img loading="lazy" data-portrait="'+esc(name)+'" src="'+esc(src)+'" data-fallback="'+esc(portraitData(name))+'" alt="Retrato de '+esc(name)+'">'}
+
+const AGENT_ALIASES={
+  'soldado 11':'Soldier 11',
+  'soldier 11':'Soldier 11',
+  'soldier 0':'Soldier 0',
+  'soldier 0 anby':'Soldier 0',
+  'starlight - billy kid':'Starlight Billy',
+  'starlight billy kid':'Starlight Billy',
+  'starlight billy':'Starlight Billy',
+  'roxy ifrita pryce':'Roxy',
+  'claret flint':'Claret',
+  'phoenix reffaella':'Phoenix',
+  'severian lowell':'Severian',
+  "sigrid de l'azur":'Sigrid',
+  'remielle dan':'Remielle',
+  'norma hollowell':'Norma',
+  'velina airgid':'Velina',
+  'lucia elowen':'Lucia',
+  'pulchra fellini':'Pulchra',
+  'yidhari murphy':'Yidhari',
+  'komano manato':'Komano Manato',
+  'nangong yu':'Nangong',
+  'caesar king':'Caesar',
+  'burnice white':'Burnice',
+  'piper wheel':'Piper',
+  'grace howard':'Grace',
+  'seth lowell':'Seth',
+  'ellen joe':'Ellen',
+  'zhu yuan':'Zhu Yuan',
+  'astra yao':'Astra',
+  'evelyn chevalier':'Evelyn',
+  'pan yinhu':'Pan Yinhu',
+  'ye shunguang':'Ye Shunguang',
+  'vivian banshee':'Vivian',
+  'hugo vlad':'Hugo',
+  'billy kid':'Billy',
+
+  'orphie & magus':'Orphie',
+  'orphie and magus':'Orphie',
+  'yuzuha':'Yuzuha',
+  'ukinami yuzuha':'Yuzuha',
+  'tsukishiro yanagi':'Yanagi',
+  'asaba harumasa':'Harumasa',
+  'von lycaon':'Lycaon',
+  'alexandrina sebastiane':'Rina',
+  'luciana de montefio':'Lucy',
+  'nekomiya mana':'Nekomata',
+  'hoshimi miyabi':'Miyabi',
+  'koleda belobog':'Koleda',
+  'billy kid':'Billy',
+  'corin wickes':'Corin',
+};
+const state={page:'overview',configured:false,modDir:'',mods:[],profiles:[],conflicts:[],favorites:[],installed:0,active:0,inactive:0,agentSearch:'',agentFaction:'Todas',showAllAgents:true,filters:{search:'',char:'Todos',status:'Todos'},busy:false};
+let customImageNames=new Set();let photoVersion=0;
+const $=s=>document.querySelector(s);
+const $$=s=>[...document.querySelectorAll(s)];
+function esc(s){return String(s??'').replace(/[&<>"']/g,m=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[m]))}
+function tone(seed){let h=0;for(const ch of seed)h=(h*31+ch.charCodeAt(0))>>>0;const hue=h%360;return {a:`hsl(${hue} 92% 64%)`,b:`hsl(${(hue+42)%360} 78% 58%)`,c:`hsl(${(hue+92)%360} 72% 55%)`};}
+function normalizeCharacter(name){const n=String(name||'Sem categoria').trim().toLowerCase();return AGENT_ALIASES[n]||AGENTS.find(a=>a.toLowerCase()===n)||name||'Sem categoria'}
+function pageMeta(id){return PAGES.find(p=>p.id===id)||PAGES[0]}
+function setPage(id){state.page=id;const meta=pageMeta(id);$('#pageEyebrow').textContent=meta.label;$('#pageTitle').textContent=meta.title;$('#pageSubtitle').textContent=meta.subtitle;$$('.page').forEach(p=>p.classList.toggle('active',p.id===`page-${id}`));$$('.navbtn').forEach(b=>b.classList.toggle('active',b.dataset.page===id));render()}
+function toast(msg,bad=false){const el=$('#toast');el.textContent=msg;el.className='toast'+(bad?' bad':'')+' show';clearTimeout(toast._t);toast._t=setTimeout(()=>el.className='toast'+(bad?' bad':''),2800)}
+function navHTML(){return PAGES.map(p=>`<button class="navbtn ${state.page===p.id?'active':''}" data-page="${p.id}"><span class="ico">${p.icon}</span><span>${p.label}</span></button>`).join('')}
+function formatStatus(){const path=state.modDir?`<span class="path">${esc(state.modDir)}</span>`:'Pasta Mods ainda não configurada';const base=state.configured?`<span>● Pasta ativa</span>${path}`:`<span>● Configuração pendente</span><span>Abra Configurações para apontar a pasta Mods.</span>`;$('#statusPill').innerHTML=base;$('#statusPill').classList.toggle('warn',!state.configured)}
+async function api(path,opts={}){const res=await fetch('/api/'+path,{method:opts.method||'GET',headers:{'X-Desk-Token':TOKEN,'Content-Type':'application/json',...(opts.headers||{})},body:opts.rawBody?opts.body:(opts.body?JSON.stringify(opts.body):undefined)});const ct=res.headers.get('content-type')||'';const data=ct.includes('application/json')?await res.json():null;if(!res.ok)throw Error(data?.error||'Erro inesperado');return data}
+async function refresh(){try{const data=await api('state');Object.assign(state,data);state.mods=(Array.isArray(state.mods)?state.mods:[]).map(m=>({...m,character:normalizeCharacter(m.character)}));state.profiles=Array.isArray(state.profiles)?state.profiles:[];state.conflicts=Array.isArray(state.conflicts)?state.conflicts:[];state.favorites=Array.isArray(state.favorites)?state.favorites:[];customImageNames=new Set(Array.isArray(data.customPhotos)?data.customPhotos:[]);if(!AGENTS.includes(state.filters.char)&&state.filters.char!=='Todos'&&!charactersInLibrary().includes(state.filters.char))state.filters.char='Todos';formatStatus();render()}catch(e){toast(e.message,true)}}
+function charactersInLibrary(){return ['Todos',...new Set(state.mods.map(m=>normalizeCharacter(m.character)).filter(Boolean))].sort((a,b)=>a.localeCompare(b,'pt-BR'))}
+function filteredMods(){return state.mods.filter(m=>{const q=state.filters.search.trim().toLowerCase();if(q){const bag=(m.name+' '+m.character+' '+m.relPath).toLowerCase();if(!bag.includes(q)) return false}if(state.filters.char!=='Todos' && normalizeCharacter(m.character)!==state.filters.char)return false;if(state.filters.status==='Ativos' && !m.enabled)return false;if(state.filters.status==='Inativos' && m.enabled)return false;if(state.filters.status==='Conflitos' && !m.conflicts)return false;return true})}
+function profileMap(){return new Map((state.profiles||[]).map(p=>[p.name,p.count]))}
+function isAgentProfile(name){return AGENTS.includes(name)}
+function orderedAgents(){return [...AGENTS].sort((a,b)=>{const fa=state.favorites.includes(a)?1:0,fb=state.favorites.includes(b)?1:0;return fb-fa||a.localeCompare(b,'pt-BR')})}
+function customProfiles(){return (state.profiles||[]).filter(p=>!isAgentProfile(p.name)).sort((a,b)=>a.name.localeCompare(b.name,'pt-BR'))}
+function modsForAgent(name){return state.mods.filter(m=>normalizeCharacter(m.character)===name)}
+function enabledModsForAgent(name){return modsForAgent(name).filter(m=>m.enabled)}
+function previewURL(id){return '/api/preview?id='+encodeURIComponent(id)+'&token='+encodeURIComponent(TOKEN)}
+function fallbackVisual(title,subtitle){const t=tone(title+' '+subtitle);const mono=(subtitle||title||'?').slice(0,1).toUpperCase();return `<div class="fallback" style="background:radial-gradient(circle at 20% 20%, ${t.a}22, transparent 35%),linear-gradient(135deg, ${t.a}22, ${t.b}15 45%, rgba(7,9,16,.08) 80%),linear-gradient(180deg,#1a2231,#0f1622)"><div class="mono">${esc(mono)}</div><div class="submono">${esc(subtitle||title)}</div><div class="line"></div></div>`}
+function portraitData(name){const t=tone(name);const initials=name.split(/\s+/).slice(0,2).map(x=>x[0]||'').join('').toUpperCase();const svg=`<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 480 640"><defs><linearGradient id="g" x1="0" y1="0" x2="1" y2="1"><stop stop-color="${t.a}"/><stop offset="0.55" stop-color="${t.b}"/><stop offset="1" stop-color="${t.c}"/></linearGradient><linearGradient id="fade" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#ffffff" stop-opacity="0"/><stop offset="1" stop-color="#070b12" stop-opacity="0.94"/></linearGradient></defs><rect width="480" height="640" fill="#0b1018"/><circle cx="405" cy="90" r="95" fill="${t.a}" opacity="0.18"/><circle cx="65" cy="530" r="100" fill="${t.b}" opacity="0.16"/><rect x="26" y="26" width="428" height="588" rx="36" fill="url(#g)" opacity="0.17"/><text x="240" y="208" text-anchor="middle" font-family="Arial, sans-serif" font-size="150" font-weight="900" fill="#ffffff" fill-opacity="0.09">${initials}</text><g opacity="0.72"><ellipse cx="240" cy="256" rx="86" ry="86" fill="#ffffff" fill-opacity="0.14"/><path d="M160 530c10-112 70-154 80-160 10 6 70 48 80 160" fill="#ffffff" fill-opacity="0.12"/></g><rect width="480" height="640" fill="url(#fade)"/><text x="32" y="568" font-family="Arial, sans-serif" font-size="32" font-weight="900" fill="#ffffff">${name.replace(/&/g,'&amp;')}</text><text x="32" y="602" font-family="Arial, sans-serif" font-size="16" font-weight="700" fill="#dbe6f5" fill-opacity="0.95">Agent Profile</text></svg>`;return 'data:image/svg+xml;charset=UTF-8,'+encodeURIComponent(svg)}
+function heroOverview(){const profileCount=(state.profiles||[]).length;const topAgents=orderedAgents().map(name=>({name,total:modsForAgent(name).length,enabled:enabledModsForAgent(name).length})).filter(a=>a.total>0).sort((a,b)=>Number(state.favorites.includes(b.name))-Number(state.favorites.includes(a.name))||b.total-a.total).slice(0,6);return `
+<div class="hero">
+  <div class="hero-grid">
+    <div>
+      <h3>Estilo novo. Controle total. ⚡</h3>
+      <p>Instale ZIPs, acompanhe conflitos de hash, salve presets e troque rapidamente entre visuais por agente sem sair clicando em pastas na mão.</p>
+      <div class="quickchips">
+        <div class="quickchip">${state.installed} mods instalados</div>
+        <div class="quickchip">${state.active} ativos agora</div>
+        <div class="quickchip">${state.conflicts.length} conflitos detectados</div>
+        <div class="quickchip">${profileCount} perfis salvos</div>
+      </div>
+    </div>
+    <div class="hero-side">
+      <div class="signal">
+        <div class="stat"><small>Mods ativos</small><strong>${state.active}</strong><p>Prontos para uso no ZZMI.</p></div>
+        <div class="stat"><small>Conflitos</small><strong>${state.conflicts.length}</strong><p>Hashes duplicados entre mods ligados.</p></div>
+      </div>
+      <div class="signal">
+        <div class="stat"><small>Perfis</small><strong>${profileCount}</strong><p>Inclui perfis gerais e por agente.</p></div>
+        <div class="stat"><small>Agentes com mods</small><strong>${topAgents.length}</strong><p>Personagens com ao menos um mod detectado.</p></div>
+      </div>
+    </div>
+  </div>
+</div>
+<div class="section">
+  <div class="sectionhead"><div><h3>Agentes em destaque</h3><p>Os personagens com mods detectados na sua biblioteca.</p></div><div class="toolbar"><button class="btn small" id="jumpAgents">Abrir agentes</button></div></div>
+  <div class="grid cards3">${topAgents.length?topAgents.map(a=>`
+    <div class="card" style="overflow:hidden">
+      <div class="agentportrait" style="height:180px;--agent-accent:${colorOf(a.name)}">${portraitTag(a.name)}<div class="agentshade"></div><div class="agentname"><div><strong>${esc(a.name)}</strong><span>${a.total} mods detectados</span></div><span class="mini">${a.enabled} ativos</span></div></div>
+      <div class="cardbody"><div class="row"><span class="mini">Perfil ${profileMap().has(a.name)?'salvo':'vazio'}</span><span class="mini">Biblioteca</span></div><div class="cardactions"><button class="btn small" data-action="view-agent" data-agent="${esc(a.name)}">Ver mods</button><button class="btn small" data-action="apply-agent-profile" data-agent="${esc(a.name)}" ${profileMap().has(a.name)?'':'disabled'}>Aplicar perfil</button></div></div>
+    </div>`).join(''):`<div class="empty" style="grid-column:1/-1"><div class="big">📭</div><h4>Nenhum agente com mods ainda</h4><p>Instale um ZIP ou configure a pasta correta do ZZMI para o app detectar sua biblioteca.</p><button class="btn primary" id="goSettingsFromEmpty">Configurar agora</button></div>`}
+  </div>
+</div>`}
+function modCard(m){return `<div class="card modcard">
+  <div class="visual">${m.preview?`<img src="${previewURL(m.id)}" alt="Preview de ${esc(m.name)}">`:fallbackVisual(m.name,m.character)}
+    <div class="badge ${m.enabled?'on':'off'}">${m.enabled?'Ativo':'Inativo'}</div>
+    ${m.conflicts?`<div class="badge right warn">${m.conflicts} conflito${m.conflicts>1?'s':''}</div>`:''}
+  </div>
+  <div class="cardbody">
+    <div class="title">${esc(m.name)}</div>
+    <div class="subtitle">${esc(m.character||'Sem categoria')}</div>
+    <div class="meta"><span class="mini">${m.iniCount} ini</span><span class="mini">Atualizado ${esc(m.lastModified||'—')}</span><span class="mini">${m.preview?'Com preview':'Sem preview'}</span></div>
+    <div class="cardactions">
+      <button class="switch ${m.enabled?'on':''}" data-action="toggle" data-id="${esc(m.id)}" aria-label="${m.enabled?'Desativar':'Ativar'} mod"><span class="knob"></span></button>
+      <span class="switchlabel">${m.enabled?'Ligado':'Desligado'}</span>
+      <select class="select" style="min-width:115px;max-width:150px;padding:7px 10px;font-size:12px" title="Atribuir este mod a um agente" data-mod-tag="${esc(m.id)}">${["Sem categoria",...AGENTS].map(a=>`<option value="${esc(a)}" ${a===m.character?"selected":""}>${esc(a)}</option>`).join("")}</select>
+      <button class="btn small ghost push" data-action="open-folder" data-id="${esc(m.id)}">Abrir pasta</button>
+    </div>
+  </div>
+</div>`}
+function libraryPage(){const mods=filteredMods();return `
+<div class="sectionhead"><div><h3>Biblioteca</h3><p>Filtre por nome, agente ou status para achar o mod mais rápido.</p></div><div class="toolbar"><button class="btn small" id="clearFilters">Limpar filtros</button></div></div>
+<div class="filterbar">
+  <div class="search"><span>⌕</span><input id="searchInput" placeholder="Buscar por nome, agente ou caminho" value="${esc(state.filters.search)}"></div>
+  <select class="select" id="charFilter">${charactersInLibrary().map(ch=>`<option ${state.filters.char===ch?'selected':''}>${esc(ch)}</option>`).join('')}</select>
+  <select class="select" id="statusFilter">${['Todos','Ativos','Inativos','Conflitos'].map(s=>`<option ${state.filters.status===s?'selected':''}>${s}</option>`).join('')}</select>
+</div>
+<div class="chips">${['Todos','Ativos','Inativos','Conflitos'].map(s=>`<button class="chip ${state.filters.status===s?'active':''}" data-status-chip="${s}">${s}</button>`).join('')}</div>
+<div id="libraryResult">${mods.length?`<div class="grid cards3">${mods.map(modCard).join('')}</div>`:`<div class="empty"><div class="big">🧩</div><h4>Nenhum mod encontrado</h4><p>Não achei nenhum mod com os filtros atuais. Tenta limpar a busca ou conferir se a pasta configurada é realmente a pasta <b>Mods</b> do ZZMI.</p></div>`}</div>`}
+function agentCard(name){const mods=modsForAgent(name);const enabled=mods.filter(m=>m.enabled).length;const saved=profileMap().get(name)||0;return `<div class="card agentcard">
+  <div class="agentportrait" style="--agent-accent:${colorOf(name)}">
+    ${portraitTag(name)}
+    <div class="agentshade"></div>
+    <div class="agentname"><div><strong>${esc(name)}</strong><span>${mods.length?mods.length+' mods na biblioteca':'Sem mods detectados'}</span></div><span class="mini">${profileMap().has(name)?saved+' salvo(s)':'sem perfil'}</span></div>
+  </div>
+  <div class="cardbody">
+    <div class="row" style="margin:-4px 0 11px;justify-content:space-between"><span class="mini" style="color:${colorOf(name)};border-color:${colorOf(name)}33">${esc(factionOf(name))}</span><button class="favorite-btn ${state.favorites.includes(name)?'saved':''}" data-action="favorite" data-agent="${esc(name)}" title="${state.favorites.includes(name)?'Remover dos favoritos':'Adicionar aos favoritos'}">${state.favorites.includes(name)?'★':'☆'}</button></div>
+    <div class="agentstats">
+      <div class="box"><small>Mods</small><strong>${mods.length}</strong></div>
+      <div class="box"><small>Ativos</small><strong>${enabled}</strong></div>
+      <div class="box"><small>Perfil</small><strong>${saved}</strong></div>
+    </div>
+    <div class="agentactions">
+      <button class="btn small" data-action="view-agent" data-agent="${esc(name)}">Ver mods</button>
+      <button class="btn small" data-action="save-agent-profile" data-agent="${esc(name)}">Salvar perfil</button>
+      <button class="btn small" data-action="apply-agent-profile" data-agent="${esc(name)}" ${profileMap().has(name)?'' : 'disabled'}>Aplicar perfil</button>
+      <button class="btn small ghost" data-action="delete-agent-profile" data-agent="${esc(name)}" ${profileMap().has(name)?'' : 'disabled'}>Apagar perfil</button>
+      <button class="btn small ghost" data-action="pick-photo" data-agent="${esc(name)}">🖼 Foto</button>
+      ${customImageNames.has(name)?`<button class="btn small ghost" data-action="delete-photo" data-agent="${esc(name)}">Restaurar foto</button>`:''}
+    </div>
+  </div>
+</div>`}
+function agentsPage(){const usedAgents=orderedAgents().filter(a=>modsForAgent(a).length||profileMap().has(a));const unusedAgents=orderedAgents().filter(a=>!usedAgents.includes(a));const all=state.showAllAgents?orderedAgents():usedAgents;const names=all.filter(a=>(a.toLowerCase()+' '+factionOf(a).toLowerCase()).includes(state.agentSearch.toLowerCase())&&(state.agentFaction==='Todas'||factionOf(a)===state.agentFaction));return `
+<div class="sectionhead"><div><h3>Agentes e suas skins</h3><p>Retratos oficiais quando disponíveis; favorite personagens e salve mods ativos em um perfil individual.</p></div><div class="toolbar"><button class="btn small" id="showAllAgentsBtn">${state.showAllAgents?'Mostrar só usados':'Mostrar todos'}</button></div></div>
+<div class="filterbar"><div class="search"><span>⌕</span><input id="agentSearchInput" placeholder="Buscar agente ou facção" value="${esc(state.agentSearch)}"></div><select id="agentFactionFilter" class="select">${['Todas',...new Set(AGENTS.map(factionOf))].sort().map(f=>`<option ${state.agentFaction===f?'selected':''}>${esc(f)}</option>`).join('')}</select></div><div class="agentgrid" id="agentResult">${names.length?names.map(agentCard).join(''):`<div class="empty" style="grid-column:1/-1"><div class="big">🪩</div><h4>Ainda não tem agentes usados</h4><p>Assim que o app detectar mods ou perfis de algum personagem, eles aparecem aqui. Você também pode usar “Mostrar todos”.</p></div>`}</div>
+${!state.showAllAgents&&unusedAgents.length?`<div class="section"><div class="sectionhead"><div><h3>Agentes sem mods detectados</h3><p>Ocultos para a lista principal não ficar gigante.</p></div></div><div class="chips">${unusedAgents.slice(0,32).map(n=>`<button class="chip" data-action="view-agent" data-agent="${esc(n)}">${esc(n)}</button>`).join('')}${unusedAgents.length>32?`<span class="chip">+${unusedAgents.length-32}</span>`:''}</div></div>`:''}`}
+function profilesPage(){const profiles=customProfiles();return `
+<div class="sectionhead"><div><h3>Perfis personalizados</h3><p>Perfis gerais para conjuntos completos de mods. Os perfis por personagem ficam na aba Agentes.</p></div><div class="toolbar"><button class="btn small" id="saveCustomProfile">Salvar perfil atual</button></div></div>
+${profiles.length?`<div class="list">${profiles.map(p=>`<div class="profileitem"><div class="profilemeta"><strong>${esc(p.name)}</strong><span>${p.count} mods salvos</span></div><div class="row"><button class="btn small" data-action="apply-custom-profile" data-name="${esc(p.name)}">Aplicar</button><button class="btn small ghost" data-action="delete-custom-profile" data-name="${esc(p.name)}">Excluir</button></div></div>`).join('')}</div>`:`<div class="empty"><div class="big">💾</div><h4>Sem perfis personalizados</h4><p>Você ainda não salvou nenhum preset geral. Use o botão acima para registrar o estado atual da biblioteca como um perfil manual.</p></div>`}`}
+function conflictsPage(){return `
+<div class="sectionhead"><div><h3>Conflitos de hash</h3><p>Dois ou mais mods ativos mexendo no mesmo hash podem se sobrepor no jogo.</p></div></div>
+${state.conflicts.length?`<div class="list">${state.conflicts.map(c=>`<div class="conflict"><strong>Hash ${esc(c.hash)}</strong><p>${esc(c.modNames.join(' • '))}</p></div>`).join('')}</div>`:`<div class="empty"><div class="big">✅</div><h4>Nenhum conflito ativo</h4><p>Boa. Nesse momento não há hashes duplicados entre os mods ligados.</p></div>`}`}
+function settingsPage(){return `
+<div class="formgrid">
+  <div class="panel">
+    <h4>Pasta principal do ZZMI</h4>
+    <p>Escolha a pasta <b>Mods</b> do ZZZ. O app só aceita a pasta exatamente chamada <code>Mods</code>.</p>
+    <div class="fieldblock"><label>Caminho da pasta</label><input id="modDirInput" class="field" type="text" value="${esc(state.modDir||'')}" placeholder="C:\\Users\\SeuNome\\AppData\\...\\ZZMI\\Mods"></div>
+    <div class="row" style="margin-top:16px"><button class="btn" id="pickFolderBtn">Procurar pasta</button><button class="btn primary" id="saveConfigBtn">Salvar configuração</button></div>
+    <p class="note" style="margin-top:14px">Se o caminho estiver certo, a biblioteca será lida automaticamente no próximo refresh.</p>
+  </div>
+  <div class="panel">
+    <h4>Atualizações do aplicativo</h4>
+    <p>Atualização automática via Releases do GitHub. Baixa o executável oficial, valida SHA-256 e reinicia sem apagar mods nem perfis.</p>
+    <div class="fieldblock"><label>Versão instalada</label><div class="row"><span class="mini">v3.1.0</span><span class="mini">Repositório: Gabriel-Liz2003/ZZZ-MANAGER</span></div></div>
+    <div id="updateStatus" class="note" style="margin-top:14px">${esc(state.updateInfo?.message || "Clique em verificar para procurar versões novas.")}</div>
+    <div class="row" style="margin-top:16px"><button class="btn" id="checkUpdatesBtn">↻ Verificar atualizações</button>${state.updateInfo?.available ? `<button class="btn primary" id="installUpdatesBtn">⬇ Baixar e instalar v${esc(state.updateInfo.latest)}</button>` : ""}</div>
+  </div>
+  <div class="panel">
+    <h4>Como funcionam os perfis</h4>
+    <p>• <b>Perfis por agente</b>: salvam os mods ativos daquele personagem; aplicar um perfil de agente preserva os outros personagens.<br>• <b>Perfis personalizados</b>: salvam o conjunto atual completo e, quando aplicados, trocam todos os mods.<br>• <b>Fotos</b>: carregadas do CDN oficial quando disponíveis. Use o botão Foto para selecionar uma imagem local.</p>
+    <div class="fieldblock"><label>Status atual</label><div class="row"><span class="mini">${state.configured?'Pasta configurada':'Ainda não configurado'}</span><span class="mini">${state.installed} mods</span><span class="mini">${state.profiles.length} perfis</span></div></div>
+  </div>
+</div>`}
+function renderLibraryResults(){const el=$('#libraryResult');if(!el)return;const mods=filteredMods();el.innerHTML=mods.length?`<div class="grid cards3">${mods.map(modCard).join('')}</div>`:`<div class="empty"><div class="big">🧩</div><h4>Nenhum mod encontrado</h4><p>Verifique os filtros e a pasta configurada.</p></div>`}
+function renderAgentResults(){const el=$('#agentResult');if(!el)return;const candidates=state.showAllAgents?orderedAgents():orderedAgents().filter(a=>modsForAgent(a).length||profileMap().has(a));const names=candidates.filter(a=>(a.toLowerCase()+' '+factionOf(a).toLowerCase()).includes(state.agentSearch.toLowerCase())&&(state.agentFaction==='Todas'||factionOf(a)===state.agentFaction));el.innerHTML=names.length?names.map(agentCard).join(''):`<div class="empty">Nenhum agente com esses filtros.</div>`}
+function render(){document.getElementById('nav').innerHTML=navHTML();$('#page-overview').innerHTML=heroOverview();$('#page-library').innerHTML=libraryPage();$('#page-agents').innerHTML=agentsPage();$('#page-profiles').innerHTML=profilesPage();$('#page-conflicts').innerHTML=conflictsPage();$('#page-settings').innerHTML=settingsPage()}
+async function toggleMod(id,enabled){if(state.busy)return;state.busy=true;try{await api('toggle',{method:'POST',body:{id,enabled}});await refresh();toast(enabled?'Mod ativado':'Mod desativado')}catch(e){toast(e.message,true)}finally{state.busy=false}}
+async function openFolder(id=''){try{await api('open-folder',{method:'POST',body:{id}})}catch(e){toast(e.message,true)}}
+async function saveAgentProfile(agent){const ids=enabledModsForAgent(agent).map(m=>m.id);try{await api('save-profile',{method:'POST',body:{name:agent,ids}});await refresh();toast('Perfil salvo para '+agent)}catch(e){toast(e.message,true)}}
+async function applyProfile(name,scoped=false){if(state.busy)return;state.busy=true;try{await api('apply-profile',{method:'POST',body:{name,scope:scoped?name:''}});await refresh();toast('Perfil aplicado: '+name)}catch(e){toast(e.message,true)}finally{state.busy=false}}
+async function deleteProfile(name){if(!confirm(`Excluir o perfil "${name}"? Os mods serão preservados.`))return;try{await api('delete-profile',{method:'POST',body:{name}});await refresh();toast('Perfil excluído')}catch(e){toast(e.message,true)}}
+async function saveModTag(id,character){try{await api('tag',{method:'POST',body:{id,character}});await refresh();toast('Agente atualizado')}catch(e){toast(e.message,true)}}
+async function saveCustomPhoto(name,file){
+  if(!file || !/^image\/(png|jpeg|webp)$/.test(file.type)){toast('Escolha uma imagem PNG, JPEG ou WEBP',true);return}
+  if(file.size>8*1024*1024){toast('A imagem deve ter até 8 MB',true);return}
+  try{
+    const res=await fetch('/api/set-agent-photo?name='+encodeURIComponent(name),{method:'POST',headers:{'X-Desk-Token':TOKEN,'Content-Type':'application/octet-stream'},body:file});
+    const data=await res.json();if(!res.ok)throw Error(data.error||'Falha no upload');photoVersion++;await refresh();toast('Foto salva para '+name);
+  }catch(e){toast(e.message,true)}
+}
+async function removeCustomPhoto(name){
+  try{await api('delete-agent-photo',{method:'POST',body:{name}});photoVersion++;await refresh();toast('Imagem padrão restaurada')}
+  catch(e){toast(e.message,true)}
+}
+async function toggleFavorite(name){try{await api('favorite',{method:'POST',body:{name,favorite:!state.favorites.includes(name)}});await refresh()}catch(e){toast(e.message,true)}}
+async function saveCustomProfile(){const name=prompt('Nome do perfil personalizado:');if(!name)return;try{await api('save-profile',{method:'POST',body:{name:name.trim()}});await refresh();toast('Perfil personalizado salvo')}catch(e){toast(e.message,true)}}
+async function saveConfig(){const path=$('#modDirInput')?.value||'';try{await api('configure',{method:'POST',body:{path}});await refresh();toast('Pasta configurada com sucesso')}catch(e){toast(e.message,true)}}
+async function pickFolder(){try{const data=await api('pick-folder',{method:'POST'});$('#modDirInput').value=data.path}catch(e){toast(e.message,true)}}
+async function checkUpdates(){
+ try{toast("Procurando versões no GitHub..."); const info=await api("update/check"); state.updateInfo=info; if(state.page!=="settings")setPage("settings"); else render(); toast(info.message,!info.available && info.message!=="Você está na versão atual.")}
+ catch(e){toast(e.message,true)}
+}
+async function installUpdates(){
+ const info=state.updateInfo; if(!info?.available)return;
+ if(!confirm(`Baixar e instalar v${info.latest}? O aplicativo será fechado e reiniciado. Seus mods e perfis serão preservados.`))return;
+ if(state.busy)return; state.busy=true;
+ const status=$("#updateStatus"); if(status) status.textContent="Baixando e verificando a integridade da versão nova...";
+ try{ const data=await api("update/install",{method:"POST",body:{version:info.latest}}); toast(data.message); if(status)status.textContent=data.message }
+ catch(e){toast(e.message,true); if(status)status.textContent=e.message; state.busy=false}
+}
+async function uploadZip(file){if(!state.configured){setPage('settings');toast('Configure a pasta Mods antes de instalar ZIPs',true);return}if(!file.name.toLowerCase().endsWith('.zip')){toast('Use um arquivo .zip',true);return}if(state.busy)return;state.busy=true;const btn=$('#importBtn');btn.disabled=true;btn.textContent='⟳ Instalando...';try{const res=await fetch('/api/import?name='+encodeURIComponent(file.name),{method:'POST',headers:{'X-Desk-Token':TOKEN,'Content-Type':'application/octet-stream'},body:file});const data=await res.json();if(!res.ok)throw Error(data.error||'Erro ao importar');toast(data.message);await refresh();setPage('library')}catch(e){toast(e.message,true)}finally{state.busy=false;btn.disabled=false;btn.textContent='＋ Instalar ZIP'}}
+
+document.addEventListener('click',async e=>{
+  const nav=e.target.closest('.navbtn'); if(nav) return setPage(nav.dataset.page);
+  const action=e.target.closest('[data-action]');
+  if(action){
+    const a=action.dataset.action;
+    if(a==='toggle') return toggleMod(action.dataset.id,!action.classList.contains('on'));
+    if(a==='favorite') return toggleFavorite(action.dataset.agent);
+    if(a==='pick-photo'){state.photoFor=action.dataset.agent;return $('#photoFile').click()}
+    if(a==='delete-photo') return removeCustomPhoto(action.dataset.agent);
+    if(a==='open-folder') return openFolder(action.dataset.id||'');
+    if(a==='filter-agent'){state.filters.char=normalizeCharacter(action.dataset.agent);setPage('library');return render()}
+    if(a==='view-agent'){state.filters.char=action.dataset.agent;state.filters.status='Todos';setPage('library');return render()}
+    if(a==='save-agent-profile') return saveAgentProfile(action.dataset.agent);
+    if(a==='apply-agent-profile') return applyProfile(action.dataset.agent,true);
+    if(a==='delete-agent-profile') return deleteProfile(action.dataset.agent);
+    if(a==='apply-custom-profile') return applyProfile(action.dataset.name);
+    if(a==='delete-custom-profile') return deleteProfile(action.dataset.name);
+  }
+  if(e.target.matches('#refreshBtn')) return refresh();
+  if(e.target.matches('#checkUpdatesTop,#checkUpdatesBtn')) return checkUpdates();
+  if(e.target.matches('#installUpdatesBtn')) return installUpdates();
+  if(e.target.matches('#importBtn')) return $('#zipFile').click();
+  if(e.target.matches('#openModsFolderTop,#openModsFolderSide')) return openFolder('');
+  if(e.target.matches('#quitBtn')) {try{await api('quit',{method:'POST'});}catch(_){}}
+  if(e.target.matches('#goSettingsFromEmpty'))return setPage('settings');
+  if(e.target.matches('#quickLibrary')) return setPage('library');
+  if(e.target.matches('#quickAgents')) return setPage('agents');
+  if(e.target.matches('#jumpAgents')) return setPage('agents');
+  if(e.target.matches('#clearFilters')){state.filters={search:'',char:'Todos',status:'Todos'};return render()}
+  if(e.target.matches('#showAllAgentsBtn')){state.showAllAgents=!state.showAllAgents;return render()}
+  if(e.target.matches('#saveCustomProfile')) return saveCustomProfile();
+  if(e.target.matches('#pickFolderBtn')) return pickFolder();
+  if(e.target.matches('#saveConfigBtn')) return saveConfig();
+  const chip=e.target.closest('[data-status-chip]'); if(chip){state.filters.status=chip.dataset.statusChip;return render()}
+});
+document.addEventListener('input',e=>{
+  if(e.target.matches('#searchInput')){state.filters.search=e.target.value;return renderLibraryResults()}
+  if(e.target.matches('#charFilter')){state.filters.char=e.target.value;return render()}
+  if(e.target.matches('#statusFilter')){state.filters.status=e.target.value;return render()}
+  if(e.target.matches('#agentSearchInput')){state.agentSearch=e.target.value;return renderAgentResults()}
+  if(e.target.matches('#agentFactionFilter')){state.agentFaction=e.target.value;return renderAgentResults()}
+});
+document.addEventListener('change',e=>{if(e.target.matches('[data-mod-tag]'))saveModTag(e.target.dataset.modTag,e.target.value)});
+$('#photoFile').addEventListener('change',async e=>{const file=e.target.files[0];const name=state.photoFor; if(file&&name)await saveCustomPhoto(name,file);e.target.value='';state.photoFor=null});
+$('#zipFile').addEventListener('change',async e=>{const f=e.target.files[0]; if(f) await uploadZip(f); e.target.value=''});
+let dragDepth=0;
+document.addEventListener('dragenter',e=>{e.preventDefault();dragDepth++; if(e.dataTransfer?.types.includes('Files')) $('#dropOverlay').classList.add('show')});
+document.addEventListener('dragover',e=>e.preventDefault());
+document.addEventListener('dragleave',e=>{e.preventDefault();dragDepth=Math.max(0,dragDepth-1); if(dragDepth===0) $('#dropOverlay').classList.remove('show')});
+document.addEventListener('drop',async e=>{e.preventDefault();dragDepth=0;$('#dropOverlay').classList.remove('show');const files=[...e.dataTransfer.files]; if(files.length){if(files.length>1) toast('Instalando apenas o primeiro ZIP desta vez'); await uploadZip(files[0])}});
+document.addEventListener('error',e=>{const img=e.target;if(img?.tagName==='IMG'&&img.dataset.fallback&&img.src!==img.dataset.fallback){img.src=img.dataset.fallback}},true);
+refresh();
+</script>
+</body>
+</html>
