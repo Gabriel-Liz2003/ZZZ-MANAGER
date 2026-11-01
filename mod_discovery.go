@@ -62,3 +62,14 @@ func nestedModPartDisabled(modRoot, filePath string) bool {
     }
     return false
 }
+
+// findModForSavedProfile keeps presets made with older versions usable after
+// internal "resources"/"toggles" entries are consolidated into their package.
+// A saved child path maps to the parent only when that parent is now a real mod.
+func findModForSavedProfile(mods []*Mod, oldID string) *Mod {
+    if match := findMod(mods, oldID); match != nil { return match }
+    for _, mod := range mods {
+        if strings.HasPrefix(oldID, mod.ID+"/") { return mod }
+    }
+    return nil
+}
