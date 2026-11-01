@@ -195,6 +195,7 @@ button:focus-visible,input:focus-visible,select:focus-visible{outline:2px solid 
 .mod-keybind-item{display:flex;align-items:flex-start;justify-content:space-between;gap:10px;padding:10px;border-radius:12px;background:rgba(255,255,255,.035)}
 .mod-keybind-item .desc{font-size:12px;line-height:1.4;color:#e9f1fa;overflow-wrap:anywhere}
 .mod-keybind-item .meta-text{font-size:11px;color:#9faec4;line-height:1.45;margin-top:3px}
+.mod-keybind-warning{color:#f2cb7c;font-size:11px;font-weight:800;line-height:1.45;margin-top:4px}
 .keycaps{display:flex;gap:4px;align-items:center;flex-wrap:wrap;justify-content:flex-end;min-width:70px;max-width:55%}
 .keycap{display:inline-block;font-size:11px;font-weight:900;letter-spacing:.025em;border-radius:7px;padding:4px 7px;color:#ecf9ca;background:#2c3540;border:1px solid #57646b;box-shadow:0 2px 0 #111820;white-space:normal;overflow-wrap:anywhere}
 .mod-keybind-empty{font-size:11px;color:#99a9be;margin-top:9px}
@@ -466,7 +467,7 @@ function hotkeyEntry(h){
   const keys=Array.isArray(h.keys)?h.keys:[];
   const back=Array.isArray(h.back)?h.back:[];
   return `<div class="mod-keybind-item">
-    <div style="min-width:0;flex:1"><div class="desc"><b>${esc(h.label||h.section||'Comando')}</b></div><div class="meta-text">${esc(bindingMode(h.mode))}${h.file?' · '+esc(h.file):''}</div>${h.condition?`<div class="meta-text" title="${esc(h.condition)}">Condição: ${esc(h.condition)}</div>`:''}</div>
+    <div style="min-width:0;flex:1"><div class="desc"><b>${esc(h.label||h.section||'Comando')}</b></div><div class="meta-text">${esc(bindingMode(h.mode))}${h.file?' · '+esc(h.file):''}</div>${h.disabled?'<div class="mod-keybind-warning">⚠ Pasta desativada — atalho apenas para referência</div>':''}${h.condition?`<div class="meta-text" title="${esc(h.condition)}">Condição: ${esc(h.condition)}</div>`:''}</div>
     <div class="keycaps">${keys.map(k=>`<kbd class="keycap">${esc(formatHotkey(k))}</kbd>`).join('')}${back.length?`<div style="width:100%;font-size:10px;color:#aeb8cb;text-align:right">Voltar</div>${back.map(k=>`<kbd class="keycap">${esc(formatHotkey(k))}</kbd>`).join('')}`:''}</div>
   </div>`;
 }
@@ -478,7 +479,7 @@ function modHotkeysPanel(m){
   return `<div class="mod-keybinds"><div class="mod-keybind-title">⌨ Comandos no jogo <span class="mini">${all.length} detectado${all.length===1?'':'s'}</span></div>
     <div class="mod-keybind-list">${shown.map(hotkeyEntry).join('')}</div>
     ${all.length>2?`<button class="mod-keybind-more" data-action="toggle-hotkeys" data-id="${esc(m.id)}">${expanded?'Mostrar menos':'Mostrar todos os '+all.length+' atalhos'}</button>`:''}
-    <div class="mod-keybind-empty">Lidos dos arquivos .ini. Algumas teclas só funcionam quando o personagem/mod está ativo no jogo.</div>
+    <div class="mod-keybind-empty">Leitura informativa dos .ini, inclusive versões desativadas. Atalhos em pastas DISABLED_ não funcionam enquanto a pasta estiver desativada.</div>
   </div>`;
 }
 function modCard(m){return `<div class="card modcard">
