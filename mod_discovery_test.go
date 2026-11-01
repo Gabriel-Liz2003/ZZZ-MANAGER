@@ -75,9 +75,9 @@ func TestNestedPackageConflictOnlyBetweenActualMods(t *testing.T) {
 
 func TestLegacyResourcesProfileRemainsApplicable(t *testing.T) {
  root:=makeMods(t)
- writeModFile(t,root,"RoxyOveralls/RoxyOveralls/toggles/Roxy.ini","[KeyMenu]\\nkey = h\\n")
- writeModFile(t,root,"RoxyOveralls/RoxyOveralls/resources/Roxy.ini","[TextureOverride]\\nhash=12345678\\n")
- writeModFile(t,root,"Rina Dress/mod.ini","[TextureOverride]\\nhash=87654321\\n")
+ writeModFile(t,root,"RoxyOveralls/RoxyOveralls/toggles/Roxy.ini","[KeyMenu]\nkey = h\n")
+ writeModFile(t,root,"RoxyOveralls/RoxyOveralls/resources/Roxy.ini","[TextureOverride]\nhash=12345678\n")
+ writeModFile(t,root,"Rina Dress/mod.ini","[TextureOverride]\nhash=87654321\n")
  mods,_,err:=scanMods(root,nil)
  if err!=nil {t.Fatal(err)}
  if len(mods)!=2 {t.Fatalf("expected consolidated Roxy plus Rina, got %d",len(mods))}
