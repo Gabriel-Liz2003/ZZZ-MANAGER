@@ -6,6 +6,8 @@ Fetch only the explicitly approved, pinned URLs, with bounded downloads.
 from pathlib import Path
 import sys
 import urllib.request
+from io import BytesIO
+from PIL import Image
 
 SOURCES = {
     # Character artwork from https://zenless.hoyoverse.com/en-us/main?catchSpider=1
@@ -32,8 +34,20 @@ def main():
         })
         with urllib.request.urlopen(req, timeout=45) as resp:
             data = resp.read(MAX_BYTES + 1)
-        if len(data) > MAX_BYTES or len(data) < 512 or not data.startswith(PNG_SIGNATURE):
-            raise ValueError(f"{name}: invalid image, unexpected format, or >12 MB; size={len(data)}")
+        if len(data) > MAX_BYTES or len(data) < 512:
+            raise ValueError(f"{name}: image too large or empty, size={len(data)}")
+        if not data.startswith(PNG_SIGNATURE):
+            # Fandom may transparently serve WEBP for .png URLs. Normalize it
+            # into PNG so the embedded server can always return image/png.
+            try:
+                with Image.open(BytesIO(data)) as img:
+                    buf = BytesIO()
+                    img.convert("RGBA").save(buf, format="PNG")
+                    data = buf.getvalue()
+            except Exception as exc:
+                raise ValueError(f"{name}: unrecognized image encoding") from exc
+        if not data.startswith(PNG_SIGNATURE) or len(data) > MAX_BYTES:
+            raise ValueError(f"{name}: invalid normalized PNG ({len(data)} bytes)")
         path = DEST / (name + ".png")
         path.write_bytes(data)
         print(f"Embedded {name}: {len(data):,} bytes", flush=True)
