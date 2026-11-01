@@ -1,6 +1,7 @@
 package main
 
 import (
+    "bytes"
     "errors"
     "fmt"
     "io"
@@ -101,28 +102,16 @@ func importArchive(root, name string, body io.Reader) (string, error) {
     if n > maxUpload { return "", errors.New("Arquivo maior que 1 GB") }
     if err := tmp.Close(); err != nil { return "", err }
 
-    // Open and validate the format BEFORE creating a destination.
+    // If the bundled RAR decoder cannot decode this archive, the Windows
+    // libarchive reader gets a second chance. Never keep a partial import.
     if strings.EqualFold(filepath.Ext(name), ".rar") {
-        rar, err := rardecode.OpenReader(tmp.Name())
-        if err != nil { return "", fmt.Errorf("RAR inválido ou não suportado: %w", err) }
-        defer rar.Close()
-        dest, err := newImportDestination(root, name)
-        if err != nil { return "", err }
-        ok := false
-        defer func() { if !ok { _ = os.RemoveAll(dest) } }()
-        w := &importWriter{dest: dest}
-        for {
-            header, err := rar.Next()
-            if err == io.EOF { break }
-            if err != nil { return "", fmt.Errorf("Falha ao ler RAR: %w", err) }
-            if header.Mode()&os.ModeSymlink != 0 || (header.Mode()&os.ModeType != 0 && !header.IsDir) { return "", errors.New("RAR contém link ou arquivo especial") }
-            if header.UnKnownSize { return "", errors.New("RAR contém arquivo com tamanho desconhecido") }
-            mode := header.Mode()
-            if err := w.add(header.Name, header.UnPackedSize, header.IsDir, mode, rar); err != nil { return "", err }
-        }
-        if err := w.finish(); err != nil { return "", err }
-        ok = true
-        return filepath.Base(dest), nil
+        if err := verifyRARSignature(tmp.Name()); err != nil { return "", err }
+        result, primaryErr := importRARWithNativeGo(root, name, tmp.Name())
+        if primaryErr == nil { return result, nil }
+        if !shouldTryRARFallback(primaryErr) { return "", primaryErr }
+        result, secondaryErr := importRARWithWindowsTar(root, name, tmp.Name())
+        if secondaryErr == nil { return result, nil }
+        return "", importRARError(primaryErr, secondaryErr)
     }
     seven, err := sevenzip.OpenReader(tmp.Name())
     if err != nil { return "", fmt.Errorf("7z inválido ou não suportado: %w", err) }
@@ -217,4 +206,49 @@ func (w *importWriter) addUnknownSize(name string, src io.Reader) error {
     w.total += n
     if strings.EqualFold(filepath.Ext(rel), ".ini") { w.hasINI = true }
     return nil
+}
+
+func verifyRARSignature(file string) error {
+    f, err := os.Open(file)
+    if err != nil { return err }
+    defer f.Close()
+    var sig [8]byte
+    n, _ := io.ReadFull(f, sig[:])
+    rar4 := []byte{0x52,0x61,0x72,0x21,0x1a,0x07,0x00}
+    rar5 := []byte{0x52,0x61,0x72,0x21,0x1a,0x07,0x01,0x00}
+    if n >= 7 && (bytes.Equal(sig[:7],rar4) || (n == 8 && bytes.Equal(sig[:],rar5))) { return nil }
+    return errors.New("O arquivo selecionado não possui uma assinatura RAR válida. Confira se o download foi concluído.")
+}
+
+func shouldTryRARFallback(err error) bool {
+    if err == nil { return false }
+    return errors.Is(err,io.ErrUnexpectedEOF) ||
+        strings.Contains(err.Error(),"rardecode:") ||
+        strings.Contains(err.Error(),"Tamanho incorreto ou pacote corrompido")
+}
+
+func importRARWithNativeGo(root, name, file string) (string, error) {
+    rar, err := rardecode.OpenReader(file)
+    if err != nil { return "", fmt.Errorf("RAR inválido ou não suportado: %w", err) }
+    defer rar.Close()
+    dest, err := newImportDestination(root, name)
+    if err != nil { return "", err }
+    ok := false
+    defer func() { if !ok { _ = os.RemoveAll(dest) } }()
+    w := &importWriter{dest: dest}
+    for {
+        header, err := rar.Next()
+        if err == io.EOF { break }
+        if err != nil { return "", fmt.Errorf("Falha ao ler RAR: %w", err) }
+        if header.Mode()&os.ModeSymlink != 0 || (header.Mode()&os.ModeType != 0 && !header.IsDir) {
+            return "", errors.New("RAR contém link ou arquivo especial")
+        }
+        if header.UnKnownSize { return "", errors.New("RAR contém arquivo com tamanho desconhecido") }
+        if err := w.add(header.Name, header.UnPackedSize, header.IsDir, header.Mode(), rar); err != nil {
+            return "", fmt.Errorf("Falha ao descompactar %q: %w", header.Name, err)
+        }
+    }
+    if err := w.finish(); err != nil { return "", err }
+    ok = true
+    return filepath.Base(dest), nil
 }
