@@ -1,4 +1,4 @@
-# NEON/MODS — ZZZ Mod Desk v3.3.1
+# NEON/MODS — ZZZ Mod Desk v3.3.2
 
 Gerenciador de mods do Zenless Zone Zero para Windows, com suporte à pasta `Mods` do ZZMI / XXMI.
 
@@ -9,6 +9,15 @@ Os retratos da **Belle, Wise, Remielle, Sigrid, Claret, Roxy, Phoenix e Severian
 Os arquivos de arte são baixados e normalizados na etapa de compilação `scripts/download_portraits.py`; o GitHub Actions usa Pillow para converter formatos retornados pelas fontes. Os seis agentes mais recentes usam imagens da [HoYoverse](https://zenless.hoyoverse.com/en-us/main?catchSpider=1); Belle e Wise usam os retratos do jogo catalogados pela [Zenless Zone Zero Wiki](https://zenless-zone-zero.fandom.com/wiki/Category:Agent_Portraits). As artes pertencem a HoYoverse / miHoYo.
 
 Para compilar localmente, execute `python -m pip install pillow` e `python scripts/download_portraits.py` antes de `go test ./...` e `go build .`.
+
+## Correção da leitura de pastas (v3.3.2)
+
+O gerenciador reconhece pacotes de mods com pastas internas como `RoxyOveralls/RoxyOveralls/toggles` e `DISABLED_resources`. Agora eles aparecem como **um único mod** chamado `RoxyOveralls`, em vez de entradas separadas para `resources` e `toggles`.
+
+- **Ativar/desativar** atua na pasta principal, sem renomear ou alterar as subpastas de recursos.
+- Os atalhos dos `.ini` ativos continuam visíveis no card do mod; os `.ini` de `DISABLED_*` não geram teclas ou conflitos falsos.
+- Pastas de coleções com mods independentes (como `Rina/Outfit A` e `Rina/Outfit B`) permanecem separadas.
+- Perfis antigos salvos com caminhos de subpastas são interpretados como referência ao novo mod agrupado quando possível.
 
 ## Instalação
 
