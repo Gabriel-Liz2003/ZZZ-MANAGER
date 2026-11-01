@@ -1,0 +1,72 @@
+package main
+
+import (
+ "os"
+ "path/filepath"
+ "testing"
+)
+
+func writeModFile(t *testing.T, root, rel, value string) {
+ t.Helper()
+ path:=filepath.Join(root, filepath.FromSlash(rel))
+ if err:=os.MkdirAll(filepath.Dir(path),0755);err!=nil{t.Fatal(err)}
+ if err:=os.WriteFile(path, []byte(value),0644);err!=nil{t.Fatal(err)}
+}
+
+func TestRoxyOverallsPackageKeepsResourcesAndTogglesTogether(t *testing.T) {
+ root:=makeMods(t)
+ writeModFile(t,root,"RoxyOveralls/RoxyOveralls/toggles/Roxy.ini","[KeyShowMenu1]\nkey = h\n[TextureOverride]\nhash = aabbccdd\n")
+ writeModFile(t,root,"RoxyOveralls/RoxyOveralls/DISABLED_resources/Roxy.ini","[KeyOldMenu]\nkey = v\n[TextureOverride]\nhash = ccddeeff\n")
+ writeModFile(t,root,"RoxyOveralls/RoxyOveralls/Press H or / to open toggle menu.txt","press H")
+ writeModFile(t,root,"RoxyOveralls/RoxyOveralls/textures/image.png","png")
+
+ mods,conflicts,err:=scanMods(root,nil)
+ if err!=nil{t.Fatal(err)}
+ if len(mods)!=1 {t.Fatalf("expected ONE RoxyOveralls mod, got %d: %#v",len(mods),mods)}
+ mod:=mods[0]
+ if mod.ID!="RoxyOveralls" || mod.Name!="RoxyOveralls" || mod.Character!="Roxy" || !mod.Enabled {
+  t.Fatalf("wrong root/character: %#v",mod)
+ }
+ if mod.IniCount!=2 {t.Fatalf("should count package INIs, got %d",mod.IniCount)}
+ if len(mod.Hotkeys)!=1 || mod.Hotkeys[0].Keys[0]!="h" {t.Fatalf("wrong active shortcuts: %#v",mod.Hotkeys)}
+ if mod.hashes["ccddeeff"] || !mod.hashes["aabbccdd"] {t.Fatal("disabled resources should not contribute hashes")}
+ if len(conflicts)!=0 {t.Fatalf("nested resources may not produce duplicate conflicts: %#v",conflicts)}
+ if err:=toggleMod(mod,false);err!=nil{t.Fatal(err)}
+ if _,err:=os.Stat(filepath.Join(root,"DISABLED_RoxyOveralls","RoxyOveralls","toggles","Roxy.ini"));err!=nil{t.Fatal(err)}
+ if _,err:=os.Stat(filepath.Join(root,"DISABLED_RoxyOveralls","RoxyOveralls","DISABLED_resources","Roxy.ini"));err!=nil{t.Fatal(err)}
+ mods,_,err=scanMods(root,nil);if err!=nil{t.Fatal(err)}
+ if len(mods)!=1 || mods[0].Enabled {t.Fatal("disabled package should remain a single disabled mod")}
+ if err:=toggleMod(mods[0],true);err!=nil{t.Fatal(err)}
+ mods,_,err=scanMods(root,nil);if err!=nil{t.Fatal(err)}
+ if len(mods)!=1 || !mods[0].Enabled {t.Fatal("reenabling should restore single package")}
+}
+
+func TestNestedResourceDirectoriesWithoutDuplicateWrapper(t *testing.T) {
+ root:=makeMods(t)
+ writeModFile(t,root,"Roxy outfit/toggles/skin.ini","[KeyNext]\nkey = y\n")
+ writeModFile(t,root,"Roxy outfit/resources/assets.ini","[TextureOverride]\nhash = cafebabe\n")
+ mods,_,err:=scanMods(root,nil)
+ if err!=nil {t.Fatal(err)}
+ if len(mods)!=1 || mods[0].Name!="Roxy outfit" || mods[0].IniCount!=2 {t.Fatalf("failed to group resources + toggles: %#v",mods)}
+}
+
+func TestCategoryFolderKeepsIndependentMods(t *testing.T) {
+ root:=makeMods(t)
+ writeModFile(t,root,"Rina/Outfit A/config.ini","[TextureOverrideA]\nhash=deadbeef\n")
+ writeModFile(t,root,"Rina/Outfit B/config.ini","[TextureOverrideB]\nhash=deadbeea\n")
+ mods,_,err:=scanMods(root,nil)
+ if err!=nil {t.Fatal(err)}
+ if len(mods)!=2 {t.Fatalf("Rina category must preserve separate mods, got %d",len(mods))}
+ if mods[0].ID!="Rina/Outfit A" || mods[1].ID!="Rina/Outfit B" {t.Fatalf("wrong mods: %q / %q",mods[0].ID,mods[1].ID)}
+}
+
+func TestNestedPackageConflictOnlyBetweenActualMods(t *testing.T) {
+ root:=makeMods(t)
+ writeModFile(t,root,"RoxyOveralls/RoxyOveralls/toggles/a.ini","[TextureOverrideA]\nhash = deadbeef\n")
+ writeModFile(t,root,"RoxyOveralls/RoxyOveralls/resources/b.ini","[TextureOverrideB]\nhash = deadbeef\n")
+ writeModFile(t,root,"Other Outfit/mod.ini","[TextureOverrideC]\nhash = deadbeef\n")
+ mods,conflicts,err:=scanMods(root,nil)
+ if err!=nil {t.Fatal(err)}
+ if len(mods)!=2 || len(conflicts)!=1 {t.Fatalf("expected two real mods and one cross-mod conflict: %d / %#v",len(mods),conflicts)}
+ if len(conflicts[0].ModIDs)!=2 {t.Fatal("nested resources/toggles must not count as independent conflict owners")}
+}
