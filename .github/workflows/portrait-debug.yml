@@ -2,24 +2,27 @@ name: Probe official portrait URLs
 on:
   push:
     branches: [main]
-  workflow_dispatch:
 jobs:
   probe:
     runs-on: ubuntu-latest
     steps:
-      - name: Fetch source and print photo metadata
+      - name: Inspect proxy picture sources
         run: |
           python3 - <<'PY'
-          import urllib.request, re, html
-          url="https://zenless.hoyoverse.com/en-us/main?catchSpider=1"
-          try:
-              req=urllib.request.Request(url,headers={"User-Agent":"Mozilla/5.0"})
-              content=urllib.request.urlopen(req,timeout=30).read().decode('utf-8','ignore')
-              print("HTML_LENGTH",len(content))
-              for key in ['Severian Lowell','Phoenix Reffaella','Roxy Ifrita Pryce','Claret Flint','Sigrid de', 'Remielle Dan']:
-                  i=content.find(key)
-                  print("KEY",key,"INDEX",i,"CONTEXT",repr(content[max(0,i-550):i+170]) if i>=0 else "")
-              print("FASTCDN",len(re.findall(r'fastcdn.hoyoverse.com',content)))
-              print("FIRST_FASTCDN", re.findall(r'https?[^"\\s<>]{0,160}fastcdn[^"\\s<>]{0,170}',content)[:3])
-          except Exception as e:print("PROBE_ERROR",type(e).__name__,str(e))
+          import urllib.request,re,html
+          urls=['https://assets.hoyotoon.com/?game=zzz&type=characters',
+            'https://zenless.hoyoverse.com/en-us/main?catchSpider=1',
+            'https://esports.gg/news/zenless-zone-zero-zzz/who-is-the-main-character-in-zenless-zone-zero-zzz/']
+          for url in urls:
+           print('URL:',url)
+           try:
+            req=urllib.request.Request(url,headers={'User-Agent':'Mozilla/5.0'})
+            content=urllib.request.urlopen(req,timeout=25).read().decode('utf-8','ignore')
+            print('LEN:',len(content))
+            for word in ('Belle','Wise','Phaethon','og:image','/assets/'):
+             matches=list(re.finditer(word,content,re.I))
+             print('KEY',word,'COUNT',len(matches))
+             for m in matches[:2]:
+              i=m.start();print('CTX',repr(content[max(0,i-450):i+190]))
+           except Exception as e:print('ERROR:',type(e).__name__,str(e))
           PY
