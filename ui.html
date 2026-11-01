@@ -187,6 +187,36 @@ button:focus-visible,input:focus-visible,select:focus-visible{outline:2px solid 
 .favorite-btn.saved{color:var(--gold);background:rgba(248,196,93,.11);border-color:rgba(248,196,93,.24)}
 .agentportrait img{object-position:50% 25%}
 #agentResult .empty{grid-column:1/-1}
+
+/* Mod keyboard shortcuts and the dark, searchable agent picker. */
+.mod-keybinds{margin-top:14px;padding:12px;border:1px solid rgba(103,232,249,.16);border-radius:16px;background:rgba(103,232,249,.045)}
+.mod-keybind-title{display:flex;align-items:center;justify-content:space-between;gap:8px;font-size:12px;font-weight:900;color:#caeff8}
+.mod-keybind-list{display:grid;gap:9px;margin-top:10px}
+.mod-keybind-item{display:flex;align-items:flex-start;justify-content:space-between;gap:10px;padding:10px;border-radius:12px;background:rgba(255,255,255,.035)}
+.mod-keybind-item .desc{font-size:12px;line-height:1.4;color:#e9f1fa;overflow-wrap:anywhere}
+.mod-keybind-item .meta-text{font-size:11px;color:#9faec4;line-height:1.45;margin-top:3px}
+.keycaps{display:flex;gap:4px;align-items:center;flex-wrap:wrap;justify-content:flex-end;min-width:70px;max-width:55%}
+.keycap{display:inline-block;font-size:11px;font-weight:900;letter-spacing:.025em;border-radius:7px;padding:4px 7px;color:#ecf9ca;background:#2c3540;border:1px solid #57646b;box-shadow:0 2px 0 #111820;white-space:normal;overflow-wrap:anywhere}
+.mod-keybind-empty{font-size:11px;color:#99a9be;margin-top:9px}
+.mod-keybind-more{width:100%;margin-top:9px;background:rgba(255,255,255,.04);border:1px solid rgba(255,255,255,.08);border-radius:10px;color:#ccdbec;padding:7px 10px;font-size:12px;font-weight:800}
+.agent-choose-btn{display:inline-flex;align-items:center;justify-content:space-between;gap:8px;max-width:100%;min-width:132px;border:1px solid rgba(198,255,72,.32);border-radius:12px;background:#192229;color:#e7f6c9;padding:8px 10px;font-weight:800;font-size:12px;white-space:nowrap}
+.agent-choose-btn:hover{background:#263136;border-color:#c6ff48}
+.agent-choose-btn span{overflow:hidden;text-overflow:ellipsis}
+.agent-choose-btn i{font-style:normal;color:#b7e678}
+.agent-picker-overlay{position:fixed;inset:0;z-index:110;display:grid;place-items:center;padding:18px;background:rgba(3,6,12,.73);backdrop-filter:blur(7px)}
+.agent-picker-overlay.hide{display:none}
+.agent-picker-modal{width:min(420px,100%);max-height:min(550px,86vh);display:flex;flex-direction:column;background:linear-gradient(160deg,#1a2333,#101825);border:1px solid #3b4c5b;border-radius:22px;box-shadow:0 24px 90px #000a;overflow:hidden}
+.agent-picker-head{padding:18px;border-bottom:1px solid #334052;display:flex;align-items:center;justify-content:space-between;gap:12px}
+.agent-picker-head strong{display:block;font-size:18px;line-height:1.2}
+.agent-picker-head small{color:#a4b6ca;display:block;margin-top:4px}
+.agent-picker-search{display:block;width:calc(100% - 32px);margin:16px;padding:12px 14px;color:#f3f6ff;background:#0b111c;border:1px solid #45536b;border-radius:12px;flex-shrink:0}
+.agent-picker-search::placeholder{color:#91a1b6}
+.agent-picker-results{padding:0 12px 14px;overflow-y:auto;overscroll-behavior:contain;min-height:0;scrollbar-color:#495773 #111825}
+.agent-choice{display:flex;align-items:center;justify-content:space-between;gap:12px;padding:12px 14px;text-align:left;color:#dce6f5;width:100%;background:transparent;border:1px solid transparent;border-radius:12px;font-weight:750}
+.agent-choice:hover,.agent-choice:focus-visible{background:#26354a;border-color:#465979;color:#fff}
+.agent-choice.selected{color:#ddfba0;background:rgba(198,255,72,.10);border-color:rgba(198,255,72,.20)}
+.agent-picker-hint{font-size:11px;color:#8799b0;padding:10px 18px 16px;border-top:1px solid #2b3648}
+@media(max-width:760px){.agent-choose-btn{width:100%}.mod-keybind-item{flex-direction:column}.keycaps{justify-content:flex-start;max-width:100%}}
 </style>
 </head>
 <body>
@@ -261,6 +291,14 @@ button:focus-visible,input:focus-visible,select:focus-visible{outline:2px solid 
 <input id="photoFile" type="file" accept="image/png,image/jpeg,image/webp" class="hide">
 <div class="drop" id="dropOverlay"><div class="dropbox"><h4>Solta o arquivo ou a pasta aqui</h4><p>Eu instalo o mod e já atualizo a biblioteca.</p></div></div>
 <div class="toast" id="toast"></div>
+<div id="agentPicker" class="agent-picker-overlay hide" role="dialog" aria-modal="true" aria-label="Selecionar agente">
+  <div class="agent-picker-modal">
+    <div class="agent-picker-head"><div><strong>Escolher agente</strong><small>Associe o mod ao personagem correto</small></div><button class="btn small ghost" id="closeAgentPicker" aria-label="Fechar">✕</button></div>
+    <input id="agentPickerSearch" class="agent-picker-search" type="search" placeholder="Buscar agente…">
+    <div class="agent-picker-results" id="agentPickerResults"></div>
+    <div class="agent-picker-hint">Os agentes favoritos aparecem primeiro. Pressione Esc para fechar.</div>
+  </div>
+</div>
 
 <script src="/assets/portraits.js"></script>
 <script>
@@ -356,6 +394,8 @@ const AGENT_ALIASES={
 };
 const state={page:'overview',configured:false,modDir:'',mods:[],profiles:[],conflicts:[],favorites:[],installed:0,active:0,inactive:0,agentSearch:'',agentFaction:'Todas',showAllAgents:true,filters:{search:'',char:'Todos',status:'Todos'},busy:false};
 let customImageNames=new Set();let photoVersion=0;
+let pickerModID=null, pickerCurrentAgent='';
+const expandedModHotkeys=new Set();
 const $=s=>document.querySelector(s);
 const $$=s=>[...document.querySelectorAll(s)];
 function esc(s){return String(s??'').replace(/[&<>"']/g,m=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[m]))}
@@ -413,6 +453,33 @@ function heroOverview(){const profileCount=(state.profiles||[]).length;const top
     </div>`).join(''):`<div class="empty" style="grid-column:1/-1"><div class="big">📭</div><h4>Nenhum agente com mods ainda</h4><p>Importe um arquivo ou pasta, ou configure a pasta correta do ZZMI para o app detectar sua biblioteca.</p><button class="btn primary" id="goSettingsFromEmpty">Configurar agora</button></div>`}
   </div>
 </div>`}
+function formatHotkey(raw){
+  const parts=String(raw||'').trim().replace(/\s+/g,' ').split(' ');
+  const known={'ctrl':'Ctrl','alt':'Alt','shift':'Shift','no_ctrl':'sem Ctrl','no_shift':'sem Shift','no_alt':'sem Alt','VK_UP':'↑','VK_DOWN':'↓','VK_LEFT':'←','VK_RIGHT':'→','VK_SPACE':'Espaço','VK_OEM_PLUS':'+','VK_OEM_MINUS':'-','XB_A':'🎮 A','XB_B':'🎮 B','XB_X':'🎮 X','XB_Y':'🎮 Y'};
+  return parts.map(x=>known[x]||known[x.toLowerCase()]||(/^VK_/i.test(x)?x.slice(3):x.toUpperCase())).join(' + ');
+}
+function bindingMode(mode){
+  return ({cycle:'Trocar variação',toggle:'Ativar/desativar',hold:'Enquanto segurar',activate:'Executar ação'})[String(mode||'').toLowerCase()]||'Atalho no jogo';
+}
+function hotkeyEntry(h){
+  const keys=Array.isArray(h.keys)?h.keys:[];
+  const back=Array.isArray(h.back)?h.back:[];
+  return `<div class="mod-keybind-item">
+    <div style="min-width:0;flex:1"><div class="desc"><b>${esc(h.label||h.section||'Comando')}</b></div><div class="meta-text">${esc(bindingMode(h.mode))}${h.file?' · '+esc(h.file):''}</div>${h.condition?`<div class="meta-text" title="${esc(h.condition)}">Condição: ${esc(h.condition)}</div>`:''}</div>
+    <div class="keycaps">${keys.map(k=>`<kbd class="keycap">${esc(formatHotkey(k))}</kbd>`).join('')}${back.length?`<div style="width:100%;font-size:10px;color:#aeb8cb;text-align:right">Voltar</div>${back.map(k=>`<kbd class="keycap">${esc(formatHotkey(k))}</kbd>`).join('')}`:''}</div>
+  </div>`;
+}
+function modHotkeysPanel(m){
+  const all=Array.isArray(m.hotkeys)?m.hotkeys:[];
+  if(!all.length)return `<div class="mod-keybinds"><div class="mod-keybind-title">⌨ Comandos no jogo</div><div class="mod-keybind-empty">Nenhum atalho encontrado nos arquivos .ini deste mod.</div></div>`;
+  const expanded=expandedModHotkeys.has(m.id);
+  const shown=expanded?all:all.slice(0,2);
+  return `<div class="mod-keybinds"><div class="mod-keybind-title">⌨ Comandos no jogo <span class="mini">${all.length} detectado${all.length===1?'':'s'}</span></div>
+    <div class="mod-keybind-list">${shown.map(hotkeyEntry).join('')}</div>
+    ${all.length>2?`<button class="mod-keybind-more" data-action="toggle-hotkeys" data-id="${esc(m.id)}">${expanded?'Mostrar menos':'Mostrar todos os '+all.length+' atalhos'}</button>`:''}
+    <div class="mod-keybind-empty">Lidos dos arquivos .ini. Algumas teclas só funcionam quando o personagem/mod está ativo no jogo.</div>
+  </div>`;
+}
 function modCard(m){return `<div class="card modcard">
   <div class="visual">${m.preview?`<img src="${previewURL(m.id)}" alt="Preview de ${esc(m.name)}">`:fallbackVisual(m.name,m.character)}
     <div class="badge ${m.enabled?'on':'off'}">${m.enabled?'Ativo':'Inativo'}</div>
@@ -422,14 +489,34 @@ function modCard(m){return `<div class="card modcard">
     <div class="title">${esc(m.name)}</div>
     <div class="subtitle">${esc(m.character||'Sem categoria')}</div>
     <div class="meta"><span class="mini">${m.iniCount} ini</span><span class="mini">Atualizado ${esc(m.lastModified||'—')}</span><span class="mini">${m.preview?'Com preview':'Sem preview'}</span></div>
+    ${modHotkeysPanel(m)}
     <div class="cardactions">
       <button class="switch ${m.enabled?'on':''}" data-action="toggle" data-id="${esc(m.id)}" aria-label="${m.enabled?'Desativar':'Ativar'} mod"><span class="knob"></span></button>
       <span class="switchlabel">${m.enabled?'Ligado':'Desligado'}</span>
-      <select class="select" style="min-width:115px;max-width:150px;padding:7px 10px;font-size:12px" title="Atribuir este mod a um agente" data-mod-tag="${esc(m.id)}">${["Sem categoria",...AGENTS].map(a=>`<option value="${esc(a)}" ${a===m.character?"selected":""}>${esc(a)}</option>`).join("")}</select>
+      <button class="agent-choose-btn" data-action="select-agent" data-id="${esc(m.id)}" title="Selecionar agente"><span>${esc(m.character||'Sem categoria')}</span><i>⌄</i></button>
       <button class="btn small ghost push" data-action="open-folder" data-id="${esc(m.id)}">Abrir pasta</button>
     </div>
   </div>
 </div>`}
+function openAgentPicker(id){
+  const mod=state.mods.find(m=>m.id===id);
+  if(!mod)return;
+  pickerModID=id;pickerCurrentAgent=mod.character||'Sem categoria';
+  $('#agentPickerSearch').value='';
+  $('#agentPicker').classList.remove('hide');
+  renderPickerResults();
+  $('#agentPickerSearch').focus();
+}
+function closeAgentPicker(){
+  $('#agentPicker').classList.add('hide');
+  pickerModID=null;
+}
+function renderPickerResults(){
+  const q=$('#agentPickerSearch').value.trim().toLocaleLowerCase('pt-BR');
+  const options=['Sem categoria',...orderedAgents()];
+  const matches=options.filter(name=>name.toLocaleLowerCase('pt-BR').includes(q));
+  $('#agentPickerResults').innerHTML=matches.length?matches.map(name=>`<button class="agent-choice ${name===pickerCurrentAgent?'selected':''}" data-agent-choice="${esc(name)}" type="button"><span>${esc(name)}</span>${name===pickerCurrentAgent?'<span>✓</span>':''}</button>`).join(''):`<div class="mod-keybind-empty" style="padding:20px">Nenhum agente encontrado.</div>`;
+}
 function libraryPage(){const mods=filteredMods();return `
 <div class="sectionhead"><div><h3>Biblioteca</h3><p>Filtre por nome, agente ou status para achar o mod mais rápido.</p></div><div class="toolbar"><button class="btn small" id="clearFilters">Limpar filtros</button></div></div>
 <div class="filterbar">
@@ -596,6 +683,8 @@ document.addEventListener('click',async e=>{
   if(action){
     const a=action.dataset.action;
     if(a==='toggle') return toggleMod(action.dataset.id,!action.classList.contains('on'));
+    if(a==='select-agent') return openAgentPicker(action.dataset.id);
+    if(a==='toggle-hotkeys'){const id=action.dataset.id;if(expandedModHotkeys.has(id))expandedModHotkeys.delete(id);else expandedModHotkeys.add(id);return renderLibraryResults();}
     if(a==='favorite') return toggleFavorite(action.dataset.agent);
     if(a==='pick-photo'){state.photoFor=action.dataset.agent;return $('#photoFile').click()}
     if(a==='delete-photo') return removeCustomPhoto(action.dataset.agent);
@@ -634,6 +723,14 @@ document.addEventListener('input',e=>{
   if(e.target.matches('#agentFactionFilter')){state.agentFaction=e.target.value;return renderAgentResults()}
 });
 document.addEventListener('change',e=>{if(e.target.matches('[data-mod-tag]'))saveModTag(e.target.dataset.modTag,e.target.value)});
+document.addEventListener('click',e=>{
+  const choice=e.target.closest('[data-agent-choice]');
+  if(choice && pickerModID){const id=pickerModID;closeAgentPicker();saveModTag(id,choice.dataset.agentChoice);return}
+  if(e.target.id==='closeAgentPicker'||e.target.id==='agentPicker')closeAgentPicker();
+});
+$('#agentPickerSearch').addEventListener('input',renderPickerResults);
+document.addEventListener('keydown',e=>{if(e.key==='Escape'&&!$('#agentPicker').classList.contains('hide')){e.preventDefault();closeAgentPicker()}});
+
 $('#photoFile').addEventListener('change',async e=>{const file=e.target.files[0];const name=state.photoFor; if(file&&name)await saveCustomPhoto(name,file);e.target.value='';state.photoFor=null});
 $('#archiveFile').addEventListener('change',async e=>{const f=e.target.files[0];if(f)await uploadArchive(f);e.target.value=''});
 $('#folderFile').addEventListener('change',async e=>{await selectFolder([...e.target.files]);e.target.value=''});
