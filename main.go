@@ -408,13 +408,13 @@ func scanMods(root string, tags map[string]string) ([]*Mod, []Conflict, error) {
 			ext := strings.ToLower(filepath.Ext(entry.Name()))
 			if ext == ".ini" {
 				mod.IniCount++
-				// DISABLED_resources is an intentionally inactive subfolder.
-				// Keep the .ini count, but ignore its keys and conflict hashes.
-				if !nestedModPartDisabled(p, filePath) {
-					mod.Hotkeys = readModHotkeys(filePath, p, mod.Hotkeys)
-					if enabled {
-						readHashes(filePath, mod.hashes)
-					}
+				// Index shortcuts from ALL subfolders, including disabled
+				// variants. The UI labels inactive shortcuts clearly.
+				// Only active .ini paths contribute collision hashes.
+				inactivePart := nestedModPartDisabled(p, filePath)
+				mod.Hotkeys = readModHotkeysInFolder(filePath, p, mod.Hotkeys, !enabled || inactivePart)
+				if enabled && !inactivePart {
+					readHashes(filePath, mod.hashes)
 				}
 			}
 			if ext == ".png" || ext == ".jpg" || ext == ".jpeg" || ext == ".webp" {
@@ -440,6 +440,10 @@ func scanMods(root string, tags map[string]string) ([]*Mod, []Conflict, error) {
 				}
 			}
 			return nil
+		})
+		// Prefer commands that can actually work over archived variants.
+		sort.SliceStable(mod.Hotkeys, func(i, j int) bool {
+			return !mod.Hotkeys[i].Disabled && mod.Hotkeys[j].Disabled
 		})
 		mod.Preview = bestPreview != ""
 		mod.previewPath = bestPreview
