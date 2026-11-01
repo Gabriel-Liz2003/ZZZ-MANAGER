@@ -17,6 +17,11 @@ jobs:
         uses: actions/setup-go@v5
         with:
           go-version-file: go.mod
+      - name: Validate interface JavaScript
+        shell: pwsh
+        run: |
+          node scripts/check-ui.mjs
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
       - name: Determine application version
         id: version
         shell: pwsh
