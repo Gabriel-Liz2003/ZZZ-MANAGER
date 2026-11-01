@@ -237,12 +237,13 @@ button:focus-visible,input:focus-visible,select:focus-visible{outline:2px solid 
         <button class="btn ghost" id="checkUpdatesTop">⬆ Verificar versão</button>
         <button class="btn ghost" id="refreshBtn">↻ Atualizar biblioteca</button>
         <button class="btn" id="openModsFolderTop">📁 Abrir pasta Mods</button>
-        <button class="btn primary" id="importBtn">＋ Instalar ZIP</button>
+        <button class="btn" id="importFolderBtn">📁 Instalar pasta</button>
+        <button class="btn primary" id="importBtn">＋ Importar arquivo</button>
       </div>
     </div>
     <div class="statusrow">
       <div class="statuspill" id="statusPill">● Aguardando leitura da biblioteca…</div>
-      <div class="statuspill warn"><span>📦</span><span>Arraste um arquivo <b>.zip</b> para qualquer lugar da janela para instalar.</span></div>
+      <div class="statuspill warn"><span>📦</span><span>Arraste um <b>ZIP, RAR, 7z ou uma pasta</b> para importar.</span></div>
     </div>
     <main class="main">
       <section class="page active" id="page-overview"></section>
@@ -255,9 +256,10 @@ button:focus-visible,input:focus-visible,select:focus-visible{outline:2px solid 
   </section>
 </div>
 
-<input id="zipFile" type="file" accept=".zip" class="hide">
+<input id="archiveFile" type="file" accept=".zip,.rar,.7z" class="hide">
+<input id="folderFile" type="file" webkitdirectory directory multiple class="hide">
 <input id="photoFile" type="file" accept="image/png,image/jpeg,image/webp" class="hide">
-<div class="drop" id="dropOverlay"><div class="dropbox"><h4>Solta o ZIP aí</h4><p>Eu instalo o mod e já atualizo a biblioteca.</p></div></div>
+<div class="drop" id="dropOverlay"><div class="dropbox"><h4>Solta o arquivo ou a pasta aqui</h4><p>Eu instalo o mod e já atualizo a biblioteca.</p></div></div>
 <div class="toast" id="toast"></div>
 
 <script src="/assets/portraits.js"></script>
@@ -382,7 +384,7 @@ function heroOverview(){const profileCount=(state.profiles||[]).length;const top
   <div class="hero-grid">
     <div>
       <h3>Estilo novo. Controle total. ⚡</h3>
-      <p>Instale ZIPs, acompanhe conflitos de hash, salve presets e troque rapidamente entre visuais por agente sem sair clicando em pastas na mão.</p>
+      <p>Importe ZIPs, RARs, 7z ou pastas, acompanhe conflitos de hash, salve presets e troque rapidamente entre visuais por agente sem sair clicando em pastas na mão.</p>
       <div class="quickchips">
         <div class="quickchip">${state.installed} mods instalados</div>
         <div class="quickchip">${state.active} ativos agora</div>
@@ -408,7 +410,7 @@ function heroOverview(){const profileCount=(state.profiles||[]).length;const top
     <div class="card" style="overflow:hidden">
       <div class="agentportrait" style="height:180px;--agent-accent:${colorOf(a.name)}">${portraitTag(a.name)}<div class="agentshade"></div><div class="agentname"><div><strong>${esc(a.name)}</strong><span>${a.total} mods detectados</span></div><span class="mini">${a.enabled} ativos</span></div></div>
       <div class="cardbody"><div class="row"><span class="mini">Perfil ${profileMap().has(a.name)?'salvo':'vazio'}</span><span class="mini">Biblioteca</span></div><div class="cardactions"><button class="btn small" data-action="view-agent" data-agent="${esc(a.name)}">Ver mods</button><button class="btn small" data-action="apply-agent-profile" data-agent="${esc(a.name)}" ${profileMap().has(a.name)?'':'disabled'}>Aplicar perfil</button></div></div>
-    </div>`).join(''):`<div class="empty" style="grid-column:1/-1"><div class="big">📭</div><h4>Nenhum agente com mods ainda</h4><p>Instale um ZIP ou configure a pasta correta do ZZMI para o app detectar sua biblioteca.</p><button class="btn primary" id="goSettingsFromEmpty">Configurar agora</button></div>`}
+    </div>`).join(''):`<div class="empty" style="grid-column:1/-1"><div class="big">📭</div><h4>Nenhum agente com mods ainda</h4><p>Importe um arquivo ou pasta, ou configure a pasta correta do ZZMI para o app detectar sua biblioteca.</p><button class="btn primary" id="goSettingsFromEmpty">Configurar agora</button></div>`}
   </div>
 </div>`}
 function modCard(m){return `<div class="card modcard">
@@ -529,7 +531,64 @@ async function installUpdates(){
  try{ const data=await api("update/install",{method:"POST",body:{version:info.latest}}); toast(data.message); if(status)status.textContent=data.message }
  catch(e){toast(e.message,true); if(status)status.textContent=e.message; state.busy=false}
 }
-async function uploadZip(file){if(!state.configured){setPage('settings');toast('Configure a pasta Mods antes de instalar ZIPs',true);return}if(!file.name.toLowerCase().endsWith('.zip')){toast('Use um arquivo .zip',true);return}if(state.busy)return;state.busy=true;const btn=$('#importBtn');btn.disabled=true;btn.textContent='⟳ Instalando...';try{const res=await fetch('/api/import?name='+encodeURIComponent(file.name),{method:'POST',headers:{'X-Desk-Token':TOKEN,'Content-Type':'application/octet-stream'},body:file});const data=await res.json();if(!res.ok)throw Error(data.error||'Erro ao importar');toast(data.message);await refresh();setPage('library')}catch(e){toast(e.message,true)}finally{state.busy=false;btn.disabled=false;btn.textContent='＋ Instalar ZIP'}}
+
+async function uploadArchive(file) {
+  if (!state.configured){setPage('settings');toast('Configure a pasta Mods primeiro',true);return}
+  if (!/\.(zip|rar|7z)$/i.test(file.name)){toast('Formatos aceitos: .zip, .rar e .7z',true);return}
+  if(file.size>1024*1024*1024){toast('Arquivo maior que 1 GB',true);return}
+  if(state.busy)return;
+  state.busy=true;
+  const btn=$('#importBtn');btn.disabled=true;btn.textContent='⟳ Importando...';
+  try{
+    const res=await fetch('/api/import?name='+encodeURIComponent(file.name),{
+      method:'POST',headers:{'X-Desk-Token':TOKEN,'Content-Type':'application/octet-stream'},body:file
+    });
+    const data=await res.json();if(!res.ok)throw Error(data.error||'Erro ao importar');
+    toast(data.message);await refresh();setPage('library');
+  }catch(e){toast(e.message,true)}
+  finally{state.busy=false;btn.disabled=false;btn.textContent='＋ Importar arquivo'}
+}
+async function uploadFolderEntries(name,entries) {
+  if(!state.configured){setPage('settings');toast('Configure a pasta Mods primeiro',true);return}
+  if(state.busy)return;
+  if(!entries.length){toast('Pasta vazia',true);return}
+  if(entries.length>8000){toast('Limite de 8000 arquivos por pasta',true);return}
+  const total=entries.reduce((sum,e)=>sum+e.file.size,0);
+  if(total>2*1024*1024*1024){toast('A pasta ultrapassa 2 GB',true);return}
+  state.busy=true;const btn=$('#importFolderBtn');btn.disabled=true;btn.textContent='⟳ Importando...';
+  try{
+    const form=new FormData();
+    for(const entry of entries){form.append('path',entry.rel);form.append('file',entry.file,entry.file.name)}
+    const res=await fetch('/api/import-folder?name='+encodeURIComponent(name),{method:'POST',headers:{'X-Desk-Token':TOKEN},body:form});
+    const data=await res.json();if(!res.ok)throw Error(data.error||'Erro ao importar pasta');
+    toast(data.message);await refresh();setPage('library');
+  }catch(e){toast(e.message,true)}
+  finally{state.busy=false;btn.disabled=false;btn.textContent='📁 Instalar pasta'}
+}
+async function selectFolder(files){
+  if(!files.length)return;
+  const first=files[0].webkitRelativePath||files[0].name;
+  const folderName=first.split('/')[0]||'Pasta importada';
+  const entries=files.map(file=>{
+    const rel=(file.webkitRelativePath||file.name).split('/').slice(1).join('/');
+    return {file,rel:rel||file.name};
+  });
+  await uploadFolderEntries(folderName,entries);
+}
+async function walkDroppedEntry(entry,base,files) {
+  if(files.length>8000)throw Error('Pasta contém arquivos demais');
+  if(entry.isFile){
+    const file=await new Promise((resolve,reject)=>entry.file(resolve,reject));
+    files.push({file,rel:base+file.name});
+  }else if(entry.isDirectory){
+    const reader=entry.createReader();
+    while(true){
+      const children=await new Promise((resolve,reject)=>reader.readEntries(resolve,reject));
+      if(!children.length)break;
+      for(const child of children)await walkDroppedEntry(child,base+entry.name+'/',files);
+    }
+  }
+}
 
 document.addEventListener('click',async e=>{
   const nav=e.target.closest('.navbtn'); if(nav) return setPage(nav.dataset.page);
@@ -552,7 +611,8 @@ document.addEventListener('click',async e=>{
   if(e.target.matches('#refreshBtn')) return refresh();
   if(e.target.matches('#checkUpdatesTop,#checkUpdatesBtn')) return checkUpdates();
   if(e.target.matches('#installUpdatesBtn')) return installUpdates();
-  if(e.target.matches('#importBtn')) return $('#zipFile').click();
+  if(e.target.matches('#importBtn')) return $('#archiveFile').click();
+  if(e.target.matches('#importFolderBtn')) return $('#folderFile').click();
   if(e.target.matches('#openModsFolderTop,#openModsFolderSide')) return openFolder('');
   if(e.target.matches('#quitBtn')) {try{await api('quit',{method:'POST'});}catch(_){}}
   if(e.target.matches('#goSettingsFromEmpty'))return setPage('settings');
@@ -575,12 +635,25 @@ document.addEventListener('input',e=>{
 });
 document.addEventListener('change',e=>{if(e.target.matches('[data-mod-tag]'))saveModTag(e.target.dataset.modTag,e.target.value)});
 $('#photoFile').addEventListener('change',async e=>{const file=e.target.files[0];const name=state.photoFor; if(file&&name)await saveCustomPhoto(name,file);e.target.value='';state.photoFor=null});
-$('#zipFile').addEventListener('change',async e=>{const f=e.target.files[0]; if(f) await uploadZip(f); e.target.value=''});
+$('#archiveFile').addEventListener('change',async e=>{const f=e.target.files[0];if(f)await uploadArchive(f);e.target.value=''});
+$('#folderFile').addEventListener('change',async e=>{await selectFolder([...e.target.files]);e.target.value=''});
 let dragDepth=0;
 document.addEventListener('dragenter',e=>{e.preventDefault();dragDepth++; if(e.dataTransfer?.types.includes('Files')) $('#dropOverlay').classList.add('show')});
 document.addEventListener('dragover',e=>e.preventDefault());
 document.addEventListener('dragleave',e=>{e.preventDefault();dragDepth=Math.max(0,dragDepth-1); if(dragDepth===0) $('#dropOverlay').classList.remove('show')});
-document.addEventListener('drop',async e=>{e.preventDefault();dragDepth=0;$('#dropOverlay').classList.remove('show');const files=[...e.dataTransfer.files]; if(files.length){if(files.length>1) toast('Instalando apenas o primeiro ZIP desta vez'); await uploadZip(files[0])}});
+document.addEventListener('drop',async e=>{
+ e.preventDefault();dragDepth=0;$('#dropOverlay').classList.remove('show');
+ const items=[...(e.dataTransfer.items||[])].filter(x=>x.kind==='file');
+ if(items.length>1)toast('Importando apenas o primeiro item');
+ const entry=items[0]?.webkitGetAsEntry?.();
+ if(entry?.isDirectory){
+   try{const files=[];await walkDroppedEntry(entry,'',files);await uploadFolderEntries(entry.name,files)}
+   catch(err){toast(err.message,true)}
+   return;
+ }
+ const file=e.dataTransfer.files?.[0];
+ if(file)await uploadArchive(file);
+});
 document.addEventListener('error',e=>{const img=e.target;if(img?.tagName==='IMG'&&img.dataset.fallback&&img.src!==img.dataset.fallback){img.src=img.dataset.fallback}},true);
 refresh();
 </script>
