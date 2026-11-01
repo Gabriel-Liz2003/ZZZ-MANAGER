@@ -1,0 +1,6 @@
+*.exe
+*.zip
+*.log
+*.backup
+zzz-mod-desk-linux
+.DS_Store
