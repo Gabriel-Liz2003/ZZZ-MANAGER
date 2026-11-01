@@ -1,0 +1,51 @@
+name: Build and publish Windows release
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  release:
+    runs-on: windows-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+      - name: Install Go
+        uses: actions/setup-go@v5
+        with:
+          go-version-file: go.mod
+      - name: Determine application version
+        id: version
+        shell: pwsh
+        run: |
+          $src = Get-Content updater.go -Raw
+          if ($src -notmatch 'appVersion\s*=\s*"(\d+\.\d+\.\d+)"') { throw "appVersion not found" }
+          "tag=v$($Matches[1])" >> $env:GITHUB_OUTPUT
+      - name: Compile portable application
+        shell: pwsh
+        run: |
+          $env:CGO_ENABLED = '0'
+          $env:GOOS = 'windows'
+          $env:GOARCH = 'amd64'
+          go test ./...
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+          go build -ldflags='-s -w' -o ZZZ-Mod-Desk.exe .
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+          $hash = (Get-FileHash -Path ZZZ-Mod-Desk.exe -Algorithm SHA256).Hash.ToLowerInvariant()
+          Set-Content -Path SHA256SUMS.txt -Value "$hash  ZZZ-Mod-Desk.exe" -NoNewline -Encoding ascii
+      - name: Publish release when version is new
+        shell: pwsh
+        env:
+          GH_TOKEN: ${{ github.token }}
+          TAG: ${{ steps.version.outputs.tag }}
+        run: |
+          gh release view $env:TAG --repo $env:GITHUB_REPOSITORY *> $null
+          if ($LASTEXITCODE -eq 0) {
+            Write-Output "Release $env:TAG already exists. Bump appVersion for a new release."
+            exit 0
+          }
+          gh release create $env:TAG ZZZ-Mod-Desk.exe SHA256SUMS.txt --repo $env:GITHUB_REPOSITORY --target $env:GITHUB_SHA --title "NEON/MODS $env:TAG" --generate-notes --latest
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
