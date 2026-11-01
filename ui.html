@@ -339,7 +339,7 @@ const FACTION_COLORS={
 };
 function factionOf(name){return FACTIONS[name]||'Independente'}
 function colorOf(name){return FACTION_COLORS[factionOf(name)]||'#b8a5ff'}
-function portraitURL(name){const part=OFFICIAL_PORTRAITS[name];return part?'https://fastcdn.hoyoverse.com/content-v2/nap/'+part:''}
+function portraitURL(name){const part=OFFICIAL_PORTRAITS[name];if(!part)return '';return part.startsWith('/assets/portraits/')?part:'https://fastcdn.hoyoverse.com/content-v2/nap/'+part}
 function portraitTag(name){const url=portraitURL(name);const src=customImageNames.has(name)?'/api/agent-photo?name='+encodeURIComponent(name)+'&token='+encodeURIComponent(TOKEN)+'&v='+photoVersion:(url||portraitData(name));return '<img loading="lazy" data-portrait="'+esc(name)+'" src="'+esc(src)+'" data-fallback="'+esc(portraitData(name))+'" alt="Retrato de '+esc(name)+'">'}
 
 const AGENT_ALIASES={
