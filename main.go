@@ -368,6 +368,9 @@ func scanMods(root string, tags map[string]string) ([]*Mod, []Conflict, error) {
 				break
 			}
 		}
+		if !hasIni && looksLikeSingleModPackage(p, entries) {
+			hasIni = anyModINI(p)
+		}
 		if !hasIni {
 			return nil
 		}
@@ -405,9 +408,13 @@ func scanMods(root string, tags map[string]string) ([]*Mod, []Conflict, error) {
 			ext := strings.ToLower(filepath.Ext(entry.Name()))
 			if ext == ".ini" {
 				mod.IniCount++
-				mod.Hotkeys = readModHotkeys(filePath, p, mod.Hotkeys)
-				if enabled {
-					readHashes(filePath, mod.hashes)
+				// DISABLED_resources is an intentionally inactive subfolder.
+				// Keep the .ini count, but ignore its keys and conflict hashes.
+				if !nestedModPartDisabled(p, filePath) {
+					mod.Hotkeys = readModHotkeys(filePath, p, mod.Hotkeys)
+					if enabled {
+						readHashes(filePath, mod.hashes)
+					}
 				}
 			}
 			if ext == ".png" || ext == ".jpg" || ext == ".jpeg" || ext == ".webp" {
