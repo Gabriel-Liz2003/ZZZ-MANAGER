@@ -83,7 +83,7 @@ func parseKeybinds(data []byte, source string) []ModHotkey {
             if matches := hotkeyHeaderRE.FindStringSubmatch(line); len(matches) == 2 {
                 section := strings.TrimSpace(matches[1])
                 // The section header must have the Key prefix, not "Keyboard".
-                if len(section) >= 3 && strings.EqualFold(section[:3], "Key") {
+                if (strings.EqualFold(section, "Key") || isInterestingHotkey(section)) && !strings.HasPrefix(strings.ToLower(section), "keyboard") {
                     current = &ModHotkey{Section: section, Label: readableKeySection(section), Keys: []string{}, Back: []string{}, File: filepath.ToSlash(source)}
                 }
             }
