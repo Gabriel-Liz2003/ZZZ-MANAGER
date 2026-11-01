@@ -57,6 +57,7 @@ type Mod struct {
 	Preview           bool   `json:"preview"`
 	LastModified      string `json:"lastModified"`
 	Conflicts         int    `json:"conflicts"`
+	Hotkeys           []ModHotkey `json:"hotkeys"`
 	path              string
 	previewPath       string
 	hashes            map[string]bool
@@ -357,6 +358,7 @@ func scanMods(root string, tags map[string]string) ([]*Mod, []Conflict, error) {
 		}
 		enabled := !isDisabled(name) && !inherited
 		mod := &Mod{ID: id, Name: prettyName(name), RelPath: filepath.ToSlash(rel), Enabled: enabled, InheritedDisabled: inherited, path: p, hashes: make(map[string]bool)}
+		mod.Hotkeys = []ModHotkey{}
 		mod.Character = guessCharacter(mod.Name)
 		if t := tags[id]; t != "" {
 			mod.Character = t
@@ -376,6 +378,7 @@ func scanMods(root string, tags map[string]string) ([]*Mod, []Conflict, error) {
 			ext := strings.ToLower(filepath.Ext(entry.Name()))
 			if ext == ".ini" {
 				mod.IniCount++
+				mod.Hotkeys = readModHotkeys(filePath, p, mod.Hotkeys)
 				if enabled {
 					readHashes(filePath, mod.hashes)
 				}
