@@ -17,6 +17,14 @@ jobs:
         uses: actions/setup-go@v5
         with:
           go-version-file: go.mod
+      - name: Bundle missing agent portraits
+        shell: pwsh
+        run: |
+          python scripts/download_portraits.py
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+          foreach ($name in @('Belle','Wise','Remielle','Sigrid','Claret','Roxy','Phoenix','Severian')) {
+            if (-not (Test-Path "assets/portraits/$name.png")) { throw "Missing portrait: $name" }
+          }
       - name: Validate interface JavaScript
         shell: pwsh
         run: |
