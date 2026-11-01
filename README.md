@@ -1,4 +1,4 @@
-# NEON/MODS — ZZZ Mod Desk v3.2.0
+# NEON/MODS — ZZZ Mod Desk v3.3.0
 
 Gerenciador de mods do Zenless Zone Zero para Windows, com suporte à pasta `Mods` do ZZMI / XXMI.
 
@@ -11,6 +11,15 @@ Gerenciador de mods do Zenless Zone Zero para Windows, com suporte à pasta `Mod
 5. **Agentes** lista 64 personagens / perfis, permite marcar favoritos, filtrar por facção e salvar ou aplicar perfis **individuais**.
 
 O executável já inclui a interface, o código do catálogo e a lógica de gerenciamento: **não é necessário instalar Python, Node, Go nem abrir terminal**.
+
+## Novidades da v3.3 — Seletor de agentes e teclas dentro do jogo
+
+- A escolha de agente nos cards da Biblioteca usa agora uma janela **escura**, com campo de busca, rolagem interna e favoritos primeiro. O nome selecionado fica visível no próprio card.
+- **Comandos no jogo** são extraídos automaticamente dos `.ini` presentes dentro da pasta de cada mod, procurando seções `[Key...]` (incluindo arquivos UTF-8 e UTF-16 com BOM).
+- Cada atalho mostra suas teclas (`key =`), tecla de retorno (`back =`, quando existir), nome da seção, tipo (`cycle`, `toggle`, `hold`, `activate`) e condições quando fornecidas.
+- Os dois primeiros atalhos ficam visíveis no card. Para mods com mais atalhos, use **Mostrar todos**.
+- Quando nenhum `[Key...]` válido é encontrado, o app informa isso em vez de inventar controles. Alguns mods usam substituição automática sem teclas.
+- **Somente leitura**: detectar e mostrar os atalhos não altera nenhum `.ini`. Os atalhos só funcionam dentro do jogo quando as condições do mod são atendidas.
 
 ## Instalação de mods (v3.2)
 
