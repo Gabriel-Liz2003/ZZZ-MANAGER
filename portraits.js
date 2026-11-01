@@ -1,7 +1,16 @@
 // Character portrait URLs from the HoYoverse official image CDN. Source:
 // https://github.com/Syqhu/zzz-api/blob/main/src/officialAssets.ts
 // See README for licenses / online requirement.
+// Eight newly bundled images are served locally, so these cards also work offline.
 const OFFICIAL_PORTRAITS = {
+  'Belle':'/assets/portraits/Belle.png',
+  'Wise':'/assets/portraits/Wise.png',
+  'Remielle':'/assets/portraits/Remielle.png',
+  'Sigrid':'/assets/portraits/Sigrid.png',
+  'Claret':'/assets/portraits/Claret.png',
+  'Roxy':'/assets/portraits/Roxy.png',
+  'Phoenix':'/assets/portraits/Phoenix.png',
+  'Severian':'/assets/portraits/Severian.png',
   'Rina':'113612/24f2740a52110a0491ae5bc49ecb23ba_4790537105761997346.png',
   'Alice':'156728/a8237a45141a924a7fba8d74a91ac261_3295946505674175020.png',
   'Anby':'102103/1cf1ab68f06c0d2115ce382e6804e714_3383703376437037229.png',
