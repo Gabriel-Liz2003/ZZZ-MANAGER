@@ -2,6 +2,16 @@
 
 Gerenciador de mods do Zenless Zone Zero para Windows, com suporte à pasta `Mods` do ZZMI / XXMI.
 
+## Importação RAR reforçada (v3.3.4)
+
+O erro `rardecode: decoded file too short` pode indicar um arquivo RAR truncado, incompatibilidade de descompactação ou corrupção. O gerenciador agora:
+
+- Usa uma versão mais recente de `rardecode` para abrir arquivos RAR.
+- Se o leitor interno falhar por erro de decodificação, tenta usar o **tar.exe nativo do Windows** (libarchive), caso o Windows ofereça suporte ao método RAR usado. Não é necessário instalar WinRAR ou 7-Zip para essa segunda tentativa.
+- Faz validação dos nomes, impede links/atalhos perigosos e extrai cada arquivo do fallback por streaming com limite total. Não permite que o tar escreva arquivos diretamente em `Mods` ou fora dela.
+- Remove a importação parcial se os dois leitores falharem. Exibe uma mensagem com a alternativa **extrair no 7-Zip ou WinRAR e usar Instalar pasta**.
+- RAR corrompido, criptografado ou dividido em vários volumes continua podendo exigir o arquivo original, uma senha ou todos os volumes. Não é possível consertar um arquivo incompleto apenas mudando o descompactador.
+
 ## Atalhos em subpastas desativadas (v3.3.3)
 
 Pacotes com várias camadas, como `Mods/[HC] Roxy.../[HC] Roxy.../DISABLED_[HC] Roxy.../*.ini`, podem incluir atalhos mesmo nas variantes desativadas. Agora o leitor varre os `.ini` de **todo o pacote**:
