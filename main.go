@@ -649,7 +649,13 @@ func (a *App) api(w http.ResponseWriter, r *http.Request) {
 			apiFail(w, 404, "Mod não encontrado")
 			return
 		}
-		if err := toggleMod(m, req.Enabled); err != nil {
+		if req.Enabled && knownWardrobeAgent(m.Character) {
+			// The Library switch must uphold the same one-skin-per-agent
+			// invariant as the visual wardrobe and randomizer.
+			changes,_,err:=selectWardrobe(mods,m.Character,m.ID)
+			if err!=nil{apiFail(w,400,err.Error());return}
+			if err=applyWardrobeChanges(changes);err!=nil{apiFail(w,409,err.Error());return}
+		} else if err := toggleMod(m, req.Enabled); err != nil {
 			apiFail(w, 400, err.Error())
 			return
 		}
@@ -784,6 +790,15 @@ func (a *App) api(w http.ResponseWriter, r *http.Request) {
 				return
 			}
 			selected[m.ID] = true
+		}
+		// A profile must never enable two outfits for the same agent.
+		chosenByAgent:=map[string]string{}
+		for _,m:=range mods{
+			if !selected[m.ID] || !knownWardrobeAgent(m.Character){continue}
+			if previous,exists:=chosenByAgent[m.Character];exists&&previous!=m.ID{
+				apiFail(w,409,"Perfil contém mais de uma skin para "+m.Character+". Selecione somente uma.");return
+			}
+			chosenByAgent[m.Character]=m.ID
 		}
 		type change struct {
 			m  *Mod
