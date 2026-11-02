@@ -1,0 +1,21 @@
+name: Validate desktop app
+on:
+  pull_request:
+  push:
+    branches: [feature/edit-mod-hotkeys]
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-go@v5
+        with:
+          go-version-file: go.mod
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - run: go mod tidy
+      - run: node scripts/check-ui.mjs
+      - run: python -m pip install --disable-pip-version-check --quiet pillow
+      - run: python scripts/download_portraits.py
+      - run: go test ./...

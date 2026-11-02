@@ -13,9 +13,10 @@ import (
 )
 
 // ModHotkey is a binding declared by a mod's [Key...] sections.
-// Read-only: no edits to .ini are made by the manager.
+// Shortcuts may be edited by the user; the writer preserves all other INI fields.
 type ModHotkey struct {
     Section string   `json:"section"`
+    Occurrence int `json:"occurrence"`
     Label   string   `json:"label"`
     Keys    []string `json:"keys"`
     Back    []string `json:"back"`
@@ -71,6 +72,7 @@ func parseKeybinds(data []byte, source string) []ModHotkey {
     scanner.Buffer(make([]byte, 64*1024), maxHotkeyINIBytes+1)
     var all []ModHotkey
     var current *ModHotkey
+    occurrences := make(map[string]int)
     commit := func() {
         if current == nil || len(current.Keys) == 0 || len(all) >= maxModHotkeys { return }
         all = append(all, *current)
@@ -85,7 +87,9 @@ func parseKeybinds(data []byte, source string) []ModHotkey {
                 section := strings.TrimSpace(matches[1])
                 // The section header must have the Key prefix, not "Keyboard".
                 if (strings.EqualFold(section, "Key") || isInterestingHotkey(section)) && !strings.HasPrefix(strings.ToLower(section), "keyboard") {
-                    current = &ModHotkey{Section: section, Label: readableKeySection(section), Keys: []string{}, Back: []string{}, File: filepath.ToSlash(source)}
+                    ordinal := occurrences[strings.ToLower(section)]
+                    occurrences[strings.ToLower(section)]++
+                    current = &ModHotkey{Section: section, Occurrence: ordinal, Label: readableKeySection(section), Keys: []string{}, Back: []string{}, File: filepath.ToSlash(source)}
                 }
             }
             continue

@@ -661,6 +661,29 @@ func (a *App) api(w http.ResponseWriter, r *http.Request) {
 		}
 		jsonWrite(w, 200, map[string]string{"path": p})
 		return
+	case "hotkey/update":
+		if r.Method != "POST" { break }
+		var req hotkeyChange
+		if err := decodeRequest(r, &req); err != nil {
+			apiFail(w, 400, "Dados do atalho inválidos")
+			return
+		}
+		mods, _, err := scanMods(a.config.ModDir, a.config.Tags)
+		if err != nil {
+			apiFail(w, 400, err.Error())
+			return
+		}
+		mod := findMod(mods, req.ID)
+		if mod == nil {
+			apiFail(w, 404, "Mod não encontrado")
+			return
+		}
+		if err := editModHotkey(mod, req); err != nil {
+			apiFail(w, 400, err.Error())
+			return
+		}
+		jsonWrite(w, 200, map[string]string{"message": "Atalho atualizado no .ini. Reinicie ou recarregue o jogo para aplicar."})
+		return
 	case "appearance/save":
 		if r.Method != "POST" { break }
 		var req struct { ID string `json:"id"` }

@@ -198,6 +198,10 @@ button:focus-visible,input:focus-visible,select:focus-visible{outline:2px solid 
 .mod-keybind-warning{color:#f2cb7c;font-size:11px;font-weight:800;line-height:1.45;margin-top:4px}
 .keycaps{display:flex;gap:4px;align-items:center;flex-wrap:wrap;justify-content:flex-end;min-width:70px;max-width:55%}
 .keycap{display:inline-block;font-size:11px;font-weight:900;letter-spacing:.025em;border-radius:7px;padding:4px 7px;color:#ecf9ca;background:#2c3540;border:1px solid #57646b;box-shadow:0 2px 0 #111820;white-space:normal;overflow-wrap:anywhere}
+.keycap-edit{cursor:pointer;font-family:inherit;transition:border-color .12s,background .12s;max-width:100%;text-align:center}
+.keycap-edit:hover,.keycap-edit:focus-visible{background:#35473d;border-color:#c6ff48;outline:2px solid rgba(198,255,72,.22);outline-offset:2px}
+.keycap-edit.recording{background:#405129;border-color:#c6ff48;color:#fff;animation:record-pulse 1s ease-in-out infinite}
+@keyframes record-pulse{50%{box-shadow:0 0 0 3px rgba(198,255,72,.2)}}
 .mod-keybind-empty{font-size:11px;color:#99a9be;margin-top:9px}
 .mod-keybind-more{width:100%;margin-top:9px;background:rgba(255,255,255,.04);border:1px solid rgba(255,255,255,.08);border-radius:10px;color:#ccdbec;padding:7px 10px;font-size:12px;font-weight:800}
 select option{background:#172032;color:#edf3ff;}
@@ -457,6 +461,7 @@ const state={page:'overview',configured:false,modDir:'',mods:[],profiles:[],conf
 let customImageNames=new Set();let photoVersion=0;
 let pickerModID=null, pickerCurrentAgent='';
 const expandedModHotkeys=new Set();
+let hotkeyCapture=null;
 const expandedAgentSkins=new Set();
 const expandedOfficialModLists=new Set();
 const officialModSearchQueries=new Map();
@@ -529,12 +534,15 @@ function formatHotkey(raw){
 function bindingMode(mode){
   return ({cycle:'Trocar variação',toggle:'Ativar/desativar',hold:'Enquanto segurar',activate:'Executar ação'})[String(mode||'').toLowerCase()]||'Atalho no jogo';
 }
-function hotkeyEntry(h){
+function hotkeyButton(m,h,field,key,index){
+  return `<button type="button" class="keycap keycap-edit" data-action="edit-hotkey" data-id="${esc(m.id)}" data-file="${esc(h.file)}" data-section="${esc(h.section)}" data-occurrence="${h.occurrence||0}" data-field="${field}" data-index="${index}" data-previous="${esc(key)}" title="Clique e pressione a nova tecla (Esc para cancelar)" aria-label="Alterar ${field==='back'?'atalho de retorno':'atalho'} de ${esc(h.label||h.section)}: ${esc(formatHotkey(key))}">${esc(formatHotkey(key))}</button>`;
+}
+function hotkeyEntry(m,h){
   const keys=Array.isArray(h.keys)?h.keys:[];
   const back=Array.isArray(h.back)?h.back:[];
   return `<div class="mod-keybind-item">
     <div style="min-width:0;flex:1"><div class="desc"><b>${esc(h.label||h.section||'Comando')}</b></div><div class="meta-text">${esc(bindingMode(h.mode))}${h.file?' · '+esc(h.file):''}</div>${h.disabled?'<div class="mod-keybind-warning">⚠ Pasta desativada — atalho apenas para referência</div>':''}${h.condition?`<div class="meta-text" title="${esc(h.condition)}">Condição: ${esc(h.condition)}</div>`:''}</div>
-    <div class="keycaps">${keys.map(k=>`<kbd class="keycap">${esc(formatHotkey(k))}</kbd>`).join('')}${back.length?`<div style="width:100%;font-size:10px;color:#aeb8cb;text-align:right">Voltar</div>${back.map(k=>`<kbd class="keycap">${esc(formatHotkey(k))}</kbd>`).join('')}`:''}</div>
+    <div class="keycaps">${keys.map((k,i)=>hotkeyButton(m,h,'key',k,i)).join('')}${back.length?`<div style="width:100%;font-size:10px;color:#aeb8cb;text-align:right">Voltar</div>${back.map((k,i)=>hotkeyButton(m,h,'back',k,i)).join('')}`:''}</div>
   </div>`;
 }
 function modHotkeysPanel(m){
@@ -543,9 +551,9 @@ function modHotkeysPanel(m){
   const expanded=expandedModHotkeys.has(m.id);
   const shown=expanded?all:all.slice(0,2);
   return `<div class="mod-keybinds"><div class="mod-keybind-title">⌨ Comandos no jogo <span class="mini">${all.length} detectado${all.length===1?'':'s'}</span></div>
-    <div class="mod-keybind-list">${shown.map(hotkeyEntry).join('')}</div>
+    <div class="mod-keybind-list">${shown.map(h=>hotkeyEntry(m,h)).join('')}</div>
     ${all.length>2?`<button class="mod-keybind-more" data-action="toggle-hotkeys" data-id="${esc(m.id)}">${expanded?'Mostrar menos':'Mostrar todos os '+all.length+' atalhos'}</button>`:''}
-    <div class="mod-keybind-empty">Leitura informativa dos .ini, inclusive versões desativadas. Atalhos em pastas DISABLED_ não funcionam enquanto a pasta estiver desativada.</div>
+    <div class="mod-keybind-empty">Clique na tecla para redefinir o comando do .ini. Pressione Esc para cancelar. Em pastas DISABLED_, o novo atalho só funciona após ativar o mod.</div>
   </div>`;
 }
 function modCard(m){return `<div class="card modcard">
@@ -729,6 +737,62 @@ function settingsPage(){return `
 function renderLibraryResults(){const el=$('#libraryResult');if(!el)return;const mods=filteredMods();el.innerHTML=mods.length?`<div class="grid cards3">${mods.map(modCard).join('')}</div>`:`<div class="empty"><div class="big">🧩</div><h4>Nenhum mod encontrado</h4><p>Verifique os filtros e a pasta configurada.</p></div>`}
 function renderAgentResults(){const el=$('#agentResult');if(!el)return;const candidates=state.showAllAgents?orderedAgents():orderedAgents().filter(a=>modsForAgent(a).length||profileMap().has(a));const names=candidates.filter(a=>(a.toLowerCase()+' '+factionOf(a).toLowerCase()).includes(state.agentSearch.toLowerCase())&&(state.agentFaction==='Todas'||factionOf(a)===state.agentFaction));el.innerHTML=names.length?names.map(agentCard).join(''):`<div class="empty">Nenhum agente com esses filtros.</div>`}
 function render(){document.getElementById('nav').innerHTML=navHTML();$('#page-overview').innerHTML=heroOverview();$('#page-library').innerHTML=libraryPage();$('#page-agents').innerHTML=agentsPage();$('#page-profiles').innerHTML=profilesPage();$('#page-conflicts').innerHTML=conflictsPage();$('#page-settings').innerHTML=settingsPage()}
+function cancelHotkeyCapture(){
+  if(!hotkeyCapture)return;
+  const {button,previousLabel}=hotkeyCapture;
+  if(button.isConnected){button.textContent=previousLabel;button.classList.remove('recording')}
+  hotkeyCapture=null;
+}
+function startHotkeyCapture(button){
+  if(state.busy)return;
+  cancelHotkeyCapture();
+  hotkeyCapture={button,previousLabel:button.textContent,id:button.dataset.id,file:button.dataset.file,section:button.dataset.section,occurrence:Number(button.dataset.occurrence),field:button.dataset.field,index:Number(button.dataset.index),previous:button.dataset.previous};
+  button.textContent='Pressione...';
+  button.classList.add('recording');
+  button.focus();
+}
+function shortcutFromKeyboard(e){
+  if(e.metaKey || e.getModifierState?.('AltGraph'))return '';
+  if(['Shift','Control','Alt','Meta','AltGraph'].includes(e.key))return null;
+  const code=e.code;
+  const special={ArrowUp:'VK_UP',ArrowDown:'VK_DOWN',ArrowLeft:'VK_LEFT',ArrowRight:'VK_RIGHT',Space:'VK_SPACE',Enter:'VK_RETURN',NumpadEnter:'VK_RETURN',Backspace:'VK_BACK',Tab:'VK_TAB',Delete:'VK_DELETE',Insert:'VK_INSERT',Home:'VK_HOME',End:'VK_END',PageUp:'VK_PRIOR',PageDown:'VK_NEXT',NumpadAdd:'VK_ADD',NumpadSubtract:'VK_SUBTRACT',NumpadMultiply:'VK_MULTIPLY',NumpadDivide:'VK_DIVIDE',NumpadDecimal:'VK_DECIMAL',Minus:'VK_OEM_MINUS',Equal:'VK_OEM_PLUS',Semicolon:'VK_OEM_1',Slash:'VK_OEM_2',Backquote:'VK_OEM_3',BracketLeft:'VK_OEM_4',Backslash:'VK_OEM_5',BracketRight:'VK_OEM_6',Quote:'VK_OEM_7',Comma:'VK_OEM_COMMA',Period:'VK_OEM_PERIOD',CapsLock:'VK_CAPITAL',Pause:'VK_PAUSE'};
+  let key='';
+  if(/^Key[A-Z]$/.test(code))key=code.slice(3).toLowerCase();
+  else if(/^Digit[0-9]$/.test(code))key=code.slice(5);
+  else if(/^Numpad[0-9]$/.test(code))key='VK_NUMPAD'+code.slice(-1);
+  else if(/^F([1-9]|1[0-9]|2[0-4])$/.test(code))key=code;
+  else key=special[code]||'';
+  if(!key&&/^[a-z0-9]$/i.test(e.key))key=e.key.toLowerCase();
+  if(!key)return '';
+  const mods=[];
+  if(e.ctrlKey)mods.push('ctrl');
+  if(e.altKey)mods.push('alt');
+  if(e.shiftKey)mods.push('shift');
+  return [...mods,key].join(' ');
+}
+async function captureHotkeyKeydown(e){
+  if(!hotkeyCapture)return;
+  e.preventDefault();e.stopImmediatePropagation();
+  if(e.repeat)return;
+  if(e.key==='Escape'){cancelHotkeyCapture();return}
+  const key=shortcutFromKeyboard(e);
+  if(key===null)return;
+  if(!key){toast('Tecla não suportada. Tente uma letra, número, F1–F24 ou uma tecla especial.',true);return}
+  const target=hotkeyCapture;
+  hotkeyCapture=null;
+  target.button.classList.remove('recording');
+  target.button.textContent='Salvando...';
+  state.busy=true;
+  try{
+    const data=await api('hotkey/update',{method:'POST',body:{id:target.id,file:target.file,section:target.section,occurrence:target.occurrence,field:target.field,index:target.index,previous:target.previous,key}});
+    await refresh();
+    toast(data.message||'Atalho atualizado no arquivo .ini');
+  }catch(err){
+    if(target.button.isConnected)target.button.textContent=target.previousLabel;
+    toast(err.message,true);
+  }finally{state.busy=false}
+}
+document.addEventListener('keydown',captureHotkeyKeydown,true);
 async function saveAppearance(id){
  if(state.busy)return;
  const mod=state.mods.find(x=>x.id===id);
@@ -910,6 +974,7 @@ document.addEventListener('click',async e=>{
     if(a==='pick-outfit-photo'){state.photoFor=outfitPhotoKey(action.dataset.agent,action.dataset.outfit);return $('#photoFile').click()}
     if(a==='delete-outfit-photo')return removeCustomPhoto(outfitPhotoKey(action.dataset.agent,action.dataset.outfit));
     if(a==='save-appearance')return saveAppearance(action.dataset.id);
+    if(a==='edit-hotkey')return startHotkeyCapture(action);
     if(a==='show-skins'){const agent=action.dataset.agent;expandedAgentSkins.has(agent)?expandedAgentSkins.delete(agent):expandedAgentSkins.add(agent);return render()}
     if(a==='select-agent') return openAgentPicker(action.dataset.id);
     if(a==='toggle-hotkeys'){const id=action.dataset.id;if(expandedModHotkeys.has(id))expandedModHotkeys.delete(id);else expandedModHotkeys.add(id);return renderLibraryResults();}
