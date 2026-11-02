@@ -687,6 +687,10 @@ func (a *App) api(w http.ResponseWriter, r *http.Request) {
 		}
 		jsonWrite(w, 200, map[string]string{"message": "Atalho atualizado no .ini. Reinicie ou recarregue o jogo para aplicar."})
 		return
+	case "appearance/status":
+		if r.Method != http.MethodGet { break }
+		jsonWrite(w, 200, a.appearanceSync)
+		return
 	case "appearance/save":
 		if r.Method != "POST" { break }
 		var req struct { ID string `json:"id"` }
