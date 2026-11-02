@@ -1,6 +1,25 @@
-# NEON/MODS — ZZZ Mod Desk v3.6.1
+# NEON/MODS — ZZZ Mod Desk v3.6.2
 
 Gerenciador de mods do Zenless Zone Zero para Windows, com suporte à pasta `Mods` do ZZMI / XXMI.
+
+## v3.6.2 — Pacotes com componentes body / face / weapon
+
+O scanner agora reconhece um único mod dividido em pastas de partes do personagem, por exemplo:
+
+```text
+Mods/
+  Soldier 0-Anby-yyzj-/
+    body/
+    face/
+    weapon/
+    说明readme.txt
+```
+
+- Se a pasta principal contiver **pelo menos dois componentes reconhecidos** (`body`, `face`, `weapon`, `head`, `hair`, `accessories`) e não contiver subpastas de coleção alheias, o app lê seus `.ini` juntos como **um único mod**, com nome e botão **Abrir pasta** apontando à pasta principal.
+- Ligar/desligar renomeia **somente a pasta do pacote inteiro**, nunca as peças internas separadamente. Atalhos, variantes e hashes continuam sendo lidos dos componentes; arquivos em pastas `DISABLED_` continuam inativos.
+- Coleções com subpastas de roupas independentes continuam independentes; não agrupamos tudo simplesmente porque está dentro da pasta de um agente.
+- Classificações antigas e perfis que faziam referência à subpasta `body`, `face` ou `weapon` continuam recuperáveis quando os metadados são inequívocos. Se houver classificações antigas conflitantes, não é escolhido um traje arbitrário.
+- Não move nem apaga nenhuma pasta. A biblioteca passa a mostrar o pacote completo, mesmo que a versão anterior tenha exibido apenas `body`.
 
 ## v3.6.1 — Coleções grandes sem cards gigantes
 
