@@ -9,4 +9,8 @@ for (const script of scripts) new vm.Script(script, { filename: "ui.html" });
 for (const value of ["id=\"agentPicker\"", "id=\"agentPickerSearch\"", "data-action=\"select-agent\"", "function modHotkeysPanel(", "function renderPickerResults("]) {
   assert.ok(html.includes(value), "Missing UI feature: " + value);
 }
-console.log("UI JavaScript syntax and feature markers OK");
+for(const feature of ['function officialCostumes(', 'function costumeCard(', 'function tagModOutfit(', 'function ownCostume(', "api('official-outfit/random'", "data-mod-outfit", "data-own-costume", "pick-outfit-photo"]){
+ assert.ok(html.includes(feature),"Missing official outfit UI feature: "+feature);
+}
+assert.ok(!html.includes('Aparência original'),"Generic original appearance card must not be shown");
+console.log("UI JavaScript, official outfit gallery, and mod grouping syntax OK");
