@@ -109,15 +109,20 @@ func planOfficialOutfitRandom(mods []*Mod,owned map[string]bool,choose func(int)
  if len(names)==0{return nil,nil,errors.New("Nenhum agente com mod ativo para sortear")}
  changes:=[]wardrobeChange{};picks:=[]OutfitPick{}
  for _,agent:=range names{
-  outfits:=[]OfficialOutfit{}
+  // Only outfits with at least one installed compatible mod participate.
+  // This preserves exactly one enabled mod per eligible agent.
+  candidates:=[]struct{outfit OfficialOutfit; variants []string}{}
   for _,o:=range officialCostumesFor(agent){
-   if o.Base||owned[agent+"/"+o.ID]{outfits=append(outfits,o)}
+   if !o.Base&&!owned[agent+"/"+o.ID]{continue}
+   variants:=[]string{}
+   for _,m:=range wardrobeGroup(mods,agent){if m.OutfitID==o.ID&&!m.InheritedDisabled{variants=append(variants,m.ID)}}
+   if len(variants)>0{candidates=append(candidates,struct{outfit OfficialOutfit;variants []string}{o,variants})}
   }
-  n,err:=choose(len(outfits));if err!=nil{return nil,nil,err}
-  if n<0||n>=len(outfits){return nil,nil,errors.New("Resultado inválido do sorteio")}
-  outfit:=outfits[n]
-  variants:=[]string{""}
-  for _,m:=range wardrobeGroup(mods,agent){if m.OutfitID==outfit.ID&&!m.InheritedDisabled{variants=append(variants,m.ID)}}
+  if len(candidates)==0{return nil,nil,fmt.Errorf("%s não possui mods compatíveis com trajes liberados para o sorteio",agent)}
+  n,err:=choose(len(candidates));if err!=nil{return nil,nil,err}
+  if n<0||n>=len(candidates){return nil,nil,errors.New("Resultado inválido do sorteio")}
+  outfit:=candidates[n].outfit
+  variants:=candidates[n].variants
   j,err:=choose(len(variants));if err!=nil{return nil,nil,err}
   if j<0||j>=len(variants){return nil,nil,errors.New("Variante sorteada inválida")}
   step,pick,err:=planOutfitSelection(mods,agent,outfit.ID,variants[j])
