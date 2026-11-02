@@ -45,6 +45,9 @@ type Config struct {
 	Profiles   map[string][]string `json:"profiles"`
 	Favorites  []string            `json:"favorites"`
 	PhotoFiles map[string]string   `json:"photoFiles"`
+	OutfitTags map[string]string `json:"outfitTags"`
+	SelectedOutfits map[string]string `json:"selectedOutfits"`
+	OwnedOutfits map[string]bool `json:"ownedOutfits"`
 }
 type Mod struct {
 	ID                string `json:"id"`
@@ -58,6 +61,7 @@ type Mod struct {
 	LastModified      string `json:"lastModified"`
 	Conflicts         int    `json:"conflicts"`
 	Hotkeys           []ModHotkey `json:"hotkeys"`
+	OutfitID string `json:"outfitId"`
 	PersistentVariables int `json:"persistentVariables"`
 	path              string
 	previewPath       string
@@ -83,6 +87,9 @@ type State struct {
 	Inactive     int        `json:"inactive"`
 	Favorites    []string   `json:"favorites"`
 	CustomPhotos []string   `json:"customPhotos"`
+	OfficialOutfits []OfficialOutfit `json:"officialOutfits"`
+	SelectedOutfits map[string]string `json:"selectedOutfits"`
+	OwnedOutfits map[string]bool `json:"ownedOutfits"`
 }
 type APIError struct {
 	Error string `json:"error"`
@@ -237,6 +244,9 @@ func (a *App) load() {
 	if a.config.PhotoFiles == nil {
 		a.config.PhotoFiles = make(map[string]string)
 	}
+	if a.config.OutfitTags==nil{a.config.OutfitTags=map[string]string{}}
+	if a.config.SelectedOutfits==nil{a.config.SelectedOutfits=map[string]string{}}
+	if a.config.OwnedOutfits==nil{a.config.OwnedOutfits=map[string]bool{}}
 	if a.config.ModDir == "" {
 		a.config.ModDir = autoDetect()
 	}
@@ -485,7 +495,7 @@ func scanMods(root string, tags map[string]string) ([]*Mod, []Conflict, error) {
 	return mods, conflicts, nil
 }
 func (a *App) state() (State, error) {
-	result := State{ModDir: a.config.ModDir, Mods: []*Mod{}, Profiles: []Profile{}, Conflicts: []Conflict{}, Favorites: append([]string{}, a.config.Favorites...), CustomPhotos: []string{}}
+	result := State{ModDir: a.config.ModDir, Mods: []*Mod{}, Profiles: []Profile{}, Conflicts: []Conflict{}, Favorites: append([]string{}, a.config.Favorites...), CustomPhotos: []string{}, OfficialOutfits: specialOfficialOutfits,SelectedOutfits:a.config.SelectedOutfits,OwnedOutfits:a.config.OwnedOutfits}
 	for n := range a.config.PhotoFiles {
 		result.CustomPhotos = append(result.CustomPhotos, n)
 	}
@@ -504,6 +514,7 @@ func (a *App) state() (State, error) {
 		return result, err
 	}
 	result.Configured = true
+	for _,m:=range mods{m.OutfitID=normalizedOutfitTag(m,a.config.OutfitTags)}
 	result.Mods = mods
 	result.Conflicts = conflicts
 	result.Installed = len(mods)
@@ -607,6 +618,50 @@ func (a *App) api(w http.ResponseWriter, r *http.Request) {
 		if err!=nil{apiFail(w,400,err.Error());return}
 		jsonWrite(w,200,map[string]any{"message":fmt.Sprintf("Variação salva: %d variável(is) encontrada(s) no ZZMI. Backups .zzzmanager.bak mantidos.",matched),"matched":matched})
 		return
+	case "official-outfit/tag":
+		if r.Method!="POST"{break}
+		var req struct{ID string `json:"id"`; OutfitID string `json:"outfitId"`}
+		if err:=decodeRequest(r,&req);err!=nil{apiFail(w,400,"Dados inválidos");return}
+		mods,_,err:=scanMods(a.config.ModDir,a.config.Tags);if err!=nil{apiFail(w,400,err.Error());return}
+		m:=findMod(mods,req.ID);if m==nil{apiFail(w,404,"Mod não encontrado");return}
+		if _,ok:=lookupOfficialCostume(m.Character,req.OutfitID);!ok{apiFail(w,400,"Traje não pertence ao agente do mod");return}
+		a.config.OutfitTags[m.ID]=req.OutfitID
+		if err:=a.save();err!=nil{apiFail(w,500,err.Error());return}
+		jsonWrite(w,200,map[string]string{"message":"Compatibilidade de traje salva"})
+		return
+	case "official-outfit/own":
+		if r.Method!="POST"{break}
+		var req struct{Agent string `json:"agent"`;OutfitID string `json:"outfitId"`;Owned bool `json:"owned"`}
+		if err:=decodeRequest(r,&req);err!=nil{apiFail(w,400,"Dados inválidos");return}
+		o,ok:=lookupOfficialCostume(req.Agent,req.OutfitID);if !ok||o.Base{apiFail(w,400,"Traje oficial inválido");return}
+		a.config.OwnedOutfits[req.Agent+"/"+req.OutfitID]=req.Owned
+		if err:=a.save();err!=nil{apiFail(w,500,err.Error());return}
+		jsonWrite(w,200,map[string]string{"message":"Traje atualizado"})
+		return
+	case "official-outfit/select":
+		if r.Method!="POST"{break}
+		var req struct{Agent string `json:"agent"`;OutfitID string `json:"outfitId"`;ModID string `json:"modId"`}
+		if err:=decodeRequest(r,&req);err!=nil{apiFail(w,400,"Dados inválidos");return}
+		mods,_,err:=scanMods(a.config.ModDir,a.config.Tags);if err!=nil{apiFail(w,400,err.Error());return}
+		for _,m:=range mods{m.OutfitID=normalizedOutfitTag(m,a.config.OutfitTags)}
+		changes,pick,err:=planOutfitSelection(mods,req.Agent,req.OutfitID,req.ModID)
+		if err!=nil{apiFail(w,400,err.Error());return}
+		if err=applyWardrobeChanges(changes);err!=nil{apiFail(w,409,err.Error());return}
+		a.config.SelectedOutfits[pick.Agent]=pick.OutfitID
+		if err:=a.save();err!=nil{apiFail(w,500,err.Error());return}
+		msg:="Preset configurado para "+pick.Agent+" — "+pick.Outfit+"."
+		if pick.MustEquipInGame{msg+=" Equipe o traje oficial no menu do ZZZ; o app não troca roupas oficiais automaticamente."}
+		jsonWrite(w,200,map[string]any{"message":msg,"choices":[]OutfitPick{pick}});return
+	case "official-outfit/random":
+		if r.Method!="POST"{break}
+		mods,_,err:=scanMods(a.config.ModDir,a.config.Tags);if err!=nil{apiFail(w,400,err.Error());return}
+		for _,m:=range mods{m.OutfitID=normalizedOutfitTag(m,a.config.OutfitTags)}
+		changes,picks,err:=planOfficialOutfitRandom(mods,a.config.OwnedOutfits,cryptoChoose)
+		if err!=nil{apiFail(w,400,err.Error());return}
+		if err=applyWardrobeChanges(changes);err!=nil{apiFail(w,409,err.Error());return}
+		for _,p:=range picks{a.config.SelectedOutfits[p.Agent]=p.OutfitID}
+		if err:=a.save();err!=nil{apiFail(w,500,err.Error());return}
+		jsonWrite(w,200,map[string]any{"message":fmt.Sprintf("%d traje(s) sorteado(s). Equipe as roupas oficiais correspondentes no jogo e pressione F10 para atualizar os mods.",len(picks)),"choices":picks});return
 	case "wardrobe/select":
 		if r.Method != "POST" { break }
 		var req struct { Agent string `json:"agent"`; ModID string `json:"modId"` }
@@ -658,6 +713,10 @@ func (a *App) api(w http.ResponseWriter, r *http.Request) {
 		} else if err := toggleMod(m, req.Enabled); err != nil {
 			apiFail(w, 400, err.Error())
 			return
+		}
+		if req.Enabled&&knownWardrobeAgent(m.Character){
+			a.config.SelectedOutfits[m.Character]=normalizedOutfitTag(m,a.config.OutfitTags)
+			_ = a.save()
 		}
 		jsonWrite(w, 200, map[string]string{"message": "Estado atualizado"})
 		return
