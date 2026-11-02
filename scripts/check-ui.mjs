@@ -59,4 +59,19 @@ let htmlEmpty=vm.runInContext("renderFixture()",ctx);
 assert.ok(htmlEmpty.includes("Nenhum mod vinculado")&&!htmlEmpty.includes('data-action="toggle-outfit-mods"'),"Empty outfits must not show list expansion");
 assert.ok(html.includes(".official-mod-list.is-expanded{max-height:300px")&&html.includes("if(a==='toggle-outfit-mods')")&&html.includes("data-outfit-mod-search"),"Bounded list or event handling missing");
 
-console.log("UI JavaScript, official outfit gallery, and mod grouping syntax OK");
+
+for(const feature of ['data-action="edit-hotkey"', 'function shortcutFromKeyboard(e)', "api('hotkey/update'", "if(a==='edit-hotkey')"]){
+ assert.ok(html.includes(feature),"Missing shortcut editor feature: "+feature);
+}
+const shortcutStart=html.indexOf("function shortcutFromKeyboard(e){");
+const shortcutEnd=html.indexOf("async function captureHotkeyKeydown(e){",shortcutStart);
+assert.ok(shortcutStart>=0&&shortcutEnd>shortcutStart,"Shortcut capture source missing");
+const keyboardCtx=vm.createContext({});
+vm.runInContext(html.slice(shortcutStart,shortcutEnd),keyboardCtx);
+const keyEvent=(code,key,opts={})=>({code,key,ctrlKey:false,altKey:false,shiftKey:false,metaKey:false,...opts});
+assert.equal(vm.runInContext("shortcutFromKeyboard",keyboardCtx)(keyEvent("KeyL","l")),"l");
+assert.equal(vm.runInContext("shortcutFromKeyboard",keyboardCtx)(keyEvent("Numpad3","3")),"VK_NUMPAD3");
+assert.equal(vm.runInContext("shortcutFromKeyboard",keyboardCtx)(keyEvent("KeyL","L",{ctrlKey:true,shiftKey:true})),"ctrl shift l");
+assert.equal(vm.runInContext("shortcutFromKeyboard",keyboardCtx)(keyEvent("ShiftLeft","Shift")),null);
+
+console.log("UI JavaScript, editable hotkeys, official outfits and mod grouping OK");
