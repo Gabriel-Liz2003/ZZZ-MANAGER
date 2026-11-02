@@ -1,6 +1,14 @@
-# NEON/MODS — ZZZ Mod Desk v3.6.0
+# NEON/MODS — ZZZ Mod Desk v3.6.1
 
 Gerenciador de mods do Zenless Zone Zero para Windows, com suporte à pasta `Mods` do ZZMI / XXMI.
+
+## v3.6.1 — Coleções grandes sem cards gigantes
+
+- A aba **Agentes → Trajes oficiais** mostra inicialmente **somente 3 mods por traje**, mantendo os mods ativos no topo e ordenando os demais por nome.
+- Quando o traje possui mais de 3 mods, o botão **Ver todos os X mods** expande uma lista com altura máxima de **300 px** (260 px em telas estreitas), rolável independentemente da página. **Recolher lista** devolve o layout compacto.
+- O modo expandido inclui **busca por nome** (sem distinguir letras maiúsculas/minúsculas ou acentos) e contagem instantânea de resultados.
+- A expansão e a busca são independentes para cada combinação **agente + traje**. A pesquisa não altera arquivos, ativações, presets ou configurações de mods.
+- O mesmo comportamento vale para trajes padrão e oficiais alternativos. Trajes com 0 a 3 mods continuam simples, sem botão de expansão.
 
 ## v3.6.0 — Identificação automática por hashes de modelos
 
