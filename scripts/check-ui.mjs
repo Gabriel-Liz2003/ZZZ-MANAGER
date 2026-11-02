@@ -74,4 +74,7 @@ assert.equal(vm.runInContext("shortcutFromKeyboard",keyboardCtx)(keyEvent("Numpa
 assert.equal(vm.runInContext("shortcutFromKeyboard",keyboardCtx)(keyEvent("KeyL","L",{ctrlKey:true,shiftKey:true})),"ctrl shift l");
 assert.equal(vm.runInContext("shortcutFromKeyboard",keyboardCtx)(keyEvent("ShiftLeft","Shift")),null);
 
-console.log("UI JavaScript, editable hotkeys, official outfits and mod grouping OK");
+for(const feature of ["id='discordAgent'", "id='discordFileURL'", "function discordCatalogPage()", "function addDiscordCatalogMod()", "api('discord/install'", "data-action='discord-install'", "id:'discord'"]){
+  assert.ok(html.includes(feature),'Missing Discord catalog UI feature: '+feature);
+}
+console.log("UI JavaScript, editable hotkeys, official outfits mod grouping and Discord catalog OK");

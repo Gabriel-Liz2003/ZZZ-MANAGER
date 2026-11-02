@@ -204,6 +204,20 @@ button:focus-visible,input:focus-visible,select:focus-visible{outline:2px solid 
 @keyframes record-pulse{50%{box-shadow:0 0 0 3px rgba(198,255,72,.2)}}
 .mod-keybind-empty{font-size:11px;color:#99a9be;margin-top:9px}
 .mod-keybind-more{width:100%;margin-top:9px;background:rgba(255,255,255,.04);border:1px solid rgba(255,255,255,.08);border-radius:10px;color:#ccdbec;padding:7px 10px;font-size:12px;font-weight:800}
+/* User-curated Discord attachment catalog: no server scraping or account tokens. */
+.discord-note{font-size:12px;color:#aab9cf;line-height:1.65;margin:0 0 16px}
+.discord-fields{display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-top:12px}
+.discord-fields label{display:flex;flex-direction:column;gap:6px;color:#cedde9;font-weight:800;font-size:12px}
+.discord-fields input,.discord-fields select{min-width:0;width:100%;padding:11px 13px;border:1px solid #415268;border-radius:10px;color:#eff6ff;background:#121d2a;font:inherit}
+.discord-fields .wide{grid-column:1/-1}
+.discord-cards{display:grid;grid-template-columns:repeat(auto-fill,minmax(235px,1fr));gap:14px;margin-top:16px}
+.discord-mod-card{border:1px solid #2b3a4e;border-radius:16px;overflow:hidden;background:#131d2b}
+.discord-mod-photo{width:100%;height:150px;display:block;object-fit:cover;background:#172133}
+.discord-mod-info{padding:13px;display:flex;flex-direction:column;gap:7px}
+.discord-mod-info strong{font-size:14px;overflow-wrap:anywhere}
+.discord-mod-actions{display:flex;flex-wrap:wrap;gap:6px;margin-top:7px}
+.discord-mod-actions .btn{flex:1;min-width:95px}
+@media(max-width:760px){.discord-fields{grid-template-columns:1fr}.discord-fields .wide{grid-column:1}}
 select option{background:#172032;color:#edf3ff;}
 .agent-choose-btn{display:inline-flex;align-items:center;justify-content:space-between;gap:8px;max-width:100%;min-width:132px;border:1px solid rgba(198,255,72,.32);border-radius:12px;background:#192229;color:#e7f6c9;padding:8px 10px;font-weight:800;font-size:12px;white-space:nowrap}
 .agent-choose-btn:hover{background:#263136;border-color:#c6ff48}
@@ -344,6 +358,7 @@ select option{background:#172032;color:#edf3ff;}
       <section class="page active" id="page-overview"></section>
       <section class="page" id="page-library"></section>
       <section class="page" id="page-agents"></section>
+      <section class="page" id="page-discord"></section>
       <section class="page" id="page-profiles"></section>
       <section class="page" id="page-conflicts"></section>
       <section class="page" id="page-settings"></section>
@@ -372,6 +387,7 @@ const PAGES=[
   {id:'overview',label:'Painel',icon:'⌂',title:'Seu hub de mods do ZZZ',subtitle:'Visão geral da biblioteca, favoritos e estado dos perfis.'},
   {id:'library',label:'Biblioteca',icon:'☷',title:'Biblioteca de mods',subtitle:'Ative, desative, filtre e organize seus mods com preview.'},
   {id:'agents',label:'Agentes',icon:'◈',title:'Perfis por agente',subtitle:'Um perfil visual para cada agente do ZZZ, com ações rápidas.'},
+  {id:'discord',label:'Catálogo Discord',icon:'⇩',title:'Catálogo de mods do Discord',subtitle:'Cadastre links de anexos e instale mods com um clique.'},
   {id:'profiles',label:'Perfis',icon:'✦',title:'Perfis personalizados',subtitle:'Gerencie presets gerais fora dos perfis automáticos dos agentes.'},
   {id:'conflicts',label:'Conflitos',icon:'⚠',title:'Conflitos de hash',subtitle:'Veja mods que mexem nos mesmos hashes e podem se sobrepor.'},
   {id:'settings',label:'Configurações',icon:'⚙',title:'Configurações',subtitle:'Aponte a pasta Mods do ZZMI e ajuste a organização da biblioteca.'},
@@ -457,7 +473,7 @@ const AGENT_ALIASES={
   'billy kid':'Billy',
   'corin wickes':'Corin',
 };
-const state={page:'overview',configured:false,modDir:'',mods:[],profiles:[],conflicts:[],favorites:[],installed:0,active:0,inactive:0,agentSearch:'',agentFaction:'Todas',showAllAgents:true,filters:{search:'',char:'Todos',status:'Todos'},busy:false};
+const state={discordAgentFilter:'Todos',page:'overview',configured:false,modDir:'',mods:[],profiles:[],conflicts:[],favorites:[],installed:0,active:0,inactive:0,agentSearch:'',agentFaction:'Todas',showAllAgents:true,filters:{search:'',char:'Todos',status:'Todos'},busy:false};
 let customImageNames=new Set();let photoVersion=0;
 let pickerModID=null, pickerCurrentAgent='';
 const expandedModHotkeys=new Set();
@@ -734,9 +750,71 @@ function settingsPage(){return `
     <div class="fieldblock"><label>Status atual</label><div class="row"><span class="mini">${state.configured?'Pasta configurada':'Ainda não configurado'}</span><span class="mini">${state.installed} mods</span><span class="mini">${state.profiles.length} perfis</span></div></div>
   </div>
 </div>`}
+function discordCatalogPage(){
+  const all=Array.isArray(state.discordMods)?state.discordMods:[];
+  const agents=['Todos',...new Set(all.map(m=>m.agent))].sort((a,b)=>a==='Todos'?-1:b==='Todos'?1:a.localeCompare(b,'pt-BR'));
+  const shown=all.filter(m=>state.discordAgentFilter==='Todos'||m.agent===state.discordAgentFilter);
+  const cards=shown.map(m=>{
+    const art=m.previewUrl||portraitURL(m.agent)||portraitData(m.agent);
+    const fallback=portraitURL(m.agent)||portraitData(m.agent);
+    return `<article class='discord-mod-card'>
+      <img class='discord-mod-photo' src='${esc(art)}' data-fallback='${esc(fallback)}' alt='Prévia de ${esc(m.name)}' referrerpolicy='no-referrer' loading='lazy'>
+      <div class='discord-mod-info'><span class='mini'>${esc(m.agent)}</span><strong>${esc(m.name)}</strong>
+      <span class='mini'>${m.installCount>0?'✓ Importado '+m.installCount+' vez(es)':'Ainda não importado'}</span>
+      ${m.messageUrl?`<a class='mini' href='${esc(m.messageUrl)}' target='_blank' rel='noreferrer noopener'>Abrir publicação original no Discord ↗</a>`:''}
+      <div class='discord-mod-actions'>
+        <button class='btn small primary' data-action='discord-install' data-id='${esc(m.id)}' ${state.busy||!state.configured?'disabled':''}>⇩ Instalar</button>
+        <button class='btn small ghost' data-action='discord-relink' data-id='${esc(m.id)}' title='Substituir um link expirado'>Novo link</button>
+        <button class='btn small ghost' data-action='discord-remove' data-id='${esc(m.id)}'>Remover</button>
+      </div></div></article>`;
+  }).join('');
+  return `<div class='sectionhead'><div><h3>Catálogo Discord</h3><p>Guarde links dos mods do SafeZone Hub e instale diretamente na pasta Mods do ZZMI.</p></div><span class='mini'>${all.length} mod(s) salvos</span></div>
+  <div class='panel'><h4>＋ Cadastrar mod do Discord</h4>
+    <p class='discord-note'>No Discord, clique com o botão direito no <b>arquivo ZIP/RAR/7z → Copiar link</b>. Cole o link do anexo, não o link da mensagem. Como você é apenas membro do servidor, este catálogo é pessoal: ele não lê canais nem acessa sua conta. Os links do Discord podem expirar; use <b>Novo link</b> quando necessário.</p>
+    <div class='discord-fields'>
+      <label>Agente <select id='discordAgent'>${orderedAgents().map(a=>`<option value='${esc(a)}' ${a==='Remielle'?'selected':''}>${esc(a)}</option>`).join('')}</select></label>
+      <label>Nome do mod <input id='discordModName' maxlength='120' placeholder='Ex.: Remielle — Police' autocomplete='off'></label>
+      <label class='wide'>Link direto do arquivo <input id='discordFileURL' type='url' placeholder='https://cdn.discordapp.com/attachments/.../mod.zip?...' autocomplete='off'></label>
+      <label>Link da mensagem (opcional) <input id='discordMessageURL' type='url' placeholder='https://discord.com/channels/...' autocomplete='off'></label>
+      <label>Link da imagem de prévia (opcional) <input id='discordPreviewURL' type='url' placeholder='https://cdn.discordapp.com/attachments/.../preview.png' autocomplete='off'></label>
+    </div>
+    <div class='row' style='margin-top:12px;justify-content:flex-end'><button class='btn primary' id='discordAddBtn'>＋ Adicionar ao catálogo</button></div>
+  </div>
+  <div class='sectionhead' style='margin-top:22px'><div><h3>Mods salvos</h3><p>Selecione uma agente para filtrar e instale o arquivo sem extrair manualmente.</p></div>
+    <select id='discordAgentFilter' class='select'>${agents.map(a=>`<option ${state.discordAgentFilter===a?'selected':''}>${esc(a)}</option>`).join('')}</select>
+  </div>
+  ${shown.length?`<div class='discord-cards'>${cards}</div>`:`<div class='empty'><div class='big'>📦</div><h4>Nenhum mod neste catálogo</h4><p>Adicione o link direto de um ZIP do Discord para começar.</p></div>`}`;
+}
+async function addDiscordCatalogMod(){
+  if(state.busy)return;
+  const input={agent:$('#discordAgent').value,name:$('#discordModName').value,downloadUrl:$('#discordFileURL').value,messageUrl:$('#discordMessageURL').value,previewUrl:$('#discordPreviewURL').value};
+  state.busy=true;
+  try{const result=await api('discord/add',{method:'POST',body:input});await refresh();state.discordAgentFilter='Todos';render();toast(result.message||'Mod adicionado')}
+  catch(err){toast(err.message,true)}finally{state.busy=false}
+}
+async function installDiscordCatalogMod(id){
+  if(state.busy)return;
+  const mod=(state.discordMods||[]).find(m=>m.id===id);if(!mod)return;
+  if(mod.installCount>0&&!confirm(`Você já importou ${mod.name} anteriormente. Instalar outra cópia mesmo assim?`))return;
+  state.busy=true;
+  try{toast('Baixando e instalando mod do Discord…');const result=await api('discord/install',{method:'POST',body:{id}});await refresh();toast(result.message||'Mod instalado com sucesso')}
+  catch(err){toast(err.message,true)}finally{state.busy=false}
+}
+async function updateDiscordCatalogLink(id){
+  const mod=(state.discordMods||[]).find(m=>m.id===id);if(!mod||state.busy)return;
+  const direct=prompt('Cole o novo link DIRETO do arquivo no Discord:',mod.downloadUrl);
+  if(direct===null)return;
+  try{const result=await api('discord/update-link',{method:'POST',body:{id,downloadUrl:direct}});await refresh();toast(result.message||'Link atualizado')}
+  catch(err){toast(err.message,true)}
+}
+async function removeDiscordCatalogMod(id){
+  if(state.busy||!confirm('Remover este item do catálogo? Mods já instalados serão mantidos.'))return;
+  try{await api('discord/remove',{method:'POST',body:{id}});await refresh();toast('Removido do catálogo')}
+  catch(err){toast(err.message,true)}
+}
 function renderLibraryResults(){const el=$('#libraryResult');if(!el)return;const mods=filteredMods();el.innerHTML=mods.length?`<div class="grid cards3">${mods.map(modCard).join('')}</div>`:`<div class="empty"><div class="big">🧩</div><h4>Nenhum mod encontrado</h4><p>Verifique os filtros e a pasta configurada.</p></div>`}
 function renderAgentResults(){const el=$('#agentResult');if(!el)return;const candidates=state.showAllAgents?orderedAgents():orderedAgents().filter(a=>modsForAgent(a).length||profileMap().has(a));const names=candidates.filter(a=>(a.toLowerCase()+' '+factionOf(a).toLowerCase()).includes(state.agentSearch.toLowerCase())&&(state.agentFaction==='Todas'||factionOf(a)===state.agentFaction));el.innerHTML=names.length?names.map(agentCard).join(''):`<div class="empty">Nenhum agente com esses filtros.</div>`}
-function render(){document.getElementById('nav').innerHTML=navHTML();$('#page-overview').innerHTML=heroOverview();$('#page-library').innerHTML=libraryPage();$('#page-agents').innerHTML=agentsPage();$('#page-profiles').innerHTML=profilesPage();$('#page-conflicts').innerHTML=conflictsPage();$('#page-settings').innerHTML=settingsPage()}
+function render(){document.getElementById('nav').innerHTML=navHTML();$('#page-overview').innerHTML=heroOverview();$('#page-library').innerHTML=libraryPage();$('#page-agents').innerHTML=agentsPage();$('#page-discord').innerHTML=discordCatalogPage();$('#page-profiles').innerHTML=profilesPage();$('#page-conflicts').innerHTML=conflictsPage();$('#page-settings').innerHTML=settingsPage()}
 function cancelHotkeyCapture(){
   if(!hotkeyCapture)return;
   const {button,previousLabel}=hotkeyCapture;
@@ -958,6 +1036,9 @@ document.addEventListener('click',async e=>{
   if(action){
     const a=action.dataset.action;
     if(a==='toggle') return toggleMod(action.dataset.id,!action.classList.contains('on'));
+    if(a==='discord-install')return installDiscordCatalogMod(action.dataset.id);
+    if(a==='discord-relink')return updateDiscordCatalogLink(action.dataset.id);
+    if(a==='discord-remove')return removeDiscordCatalogMod(action.dataset.id);
     if(a==='official-select')return chooseOfficialCostume(action.dataset.agent,action.dataset.outfit,action.dataset.id);
     if(a==='toggle-outfit-mods'){
       const key=outfitListKey(action.dataset.agent,action.dataset.outfit);
@@ -990,6 +1071,7 @@ document.addEventListener('click',async e=>{
     if(a==='apply-custom-profile') return applyProfile(action.dataset.name);
     if(a==='delete-custom-profile') return deleteProfile(action.dataset.name);
   }
+  if(e.target.matches('#discordAddBtn'))return addDiscordCatalogMod();
   if(e.target.matches('#randomWardrobeBtn')) return randomizeWardrobe();
   if(e.target.matches('#syncHashDatabaseBtn'))return syncHashDatabase();
   if(e.target.matches('#organizeAgentFoldersBtn'))return organizeAgentFolders();
@@ -1031,6 +1113,7 @@ document.addEventListener('input',e=>{
     return;
   }
   if(e.target.matches('#searchInput')){state.filters.search=e.target.value;return renderLibraryResults()}
+  if(e.target.matches('#discordAgentFilter')){state.discordAgentFilter=e.target.value;return render()}
   if(e.target.matches('#charFilter')){state.filters.char=e.target.value;return render()}
   if(e.target.matches('#statusFilter')){state.filters.status=e.target.value;return render()}
   if(e.target.matches('#agentSearchInput')){state.agentSearch=e.target.value;return renderAgentResults()}

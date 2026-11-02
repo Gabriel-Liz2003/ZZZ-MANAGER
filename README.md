@@ -1,4 +1,13 @@
-# NEON/MODS — ZZZ Mod Desk v3.7.2
+# NEON/MODS — ZZZ Mod Desk v3.8.0
+
+## v3.8.0 — Catálogo Discord (links importados manualmente)
+
+A nova aba **Catálogo Discord** permite cadastrar links diretos de arquivos ZIP, RAR ou 7z publicados como anexos em um servidor do Discord, com nome, agente, link da mensagem e imagem de prévia opcionais. Após adicionar um item, use **Instalar** para baixar o pacote e organizá-lo automaticamente na pasta da agente pelo instalador existente. O app preserva mods antigos, bloqueia executáveis e protege contra caminhos maliciosos.
+
+**Como usar:** abra a publicação da agente no Discord, clique com o botão direito no *arquivo de download* e escolha **Copiar link**. Cole o endereço `https://cdn.discordapp.com/attachments/.../mod.zip?...` no catálogo. O link da mensagem `https://discord.com/channels/...` serve somente para voltar à publicação e **não** fornece acesso direto ao arquivo. Links de anexos podem expirar; nesses casos, clique em **Novo link**.
+
+**Limite desta versão:** o app **não** pesquisa automaticamente fóruns, não lê canais privados e não usa token de usuário ou self-bot. Sem autorização para um bot oficial no servidor, cada link precisa ser adicionado pelo usuário. Itens salvos ficam no computador; a contagem de importações é histórica, não uma verificação da existência do arquivo.
+
 
 ## v3.7.2 — Correção de mods divididos entre skin e cabelo
 
