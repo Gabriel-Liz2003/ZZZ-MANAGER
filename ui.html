@@ -750,6 +750,68 @@ function settingsPage(){return `
     <div class="fieldblock"><label>Status atual</label><div class="row"><span class="mini">${state.configured?'Pasta configurada':'Ainda não configurado'}</span><span class="mini">${state.installed} mods</span><span class="mini">${state.profiles.length} perfis</span></div></div>
   </div>
 </div>`}
+function discordCatalogPage(){
+  const all=Array.isArray(state.discordMods)?state.discordMods:[];
+  const agents=['Todos',...new Set(all.map(m=>m.agent))].sort((a,b)=>a==='Todos'?-1:b==='Todos'?1:a.localeCompare(b,'pt-BR'));
+  const shown=all.filter(m=>state.discordAgentFilter==='Todos'||m.agent===state.discordAgentFilter);
+  const cards=shown.map(m=>{
+    const art=m.previewUrl||portraitURL(m.agent)||portraitData(m.agent);
+    const fallback=portraitURL(m.agent)||portraitData(m.agent);
+    return `<article class='discord-mod-card'>
+      <img class='discord-mod-photo' src='${esc(art)}' data-fallback='${esc(fallback)}' alt='Prévia de ${esc(m.name)}' referrerpolicy='no-referrer' loading='lazy'>
+      <div class='discord-mod-info'><span class='mini'>${esc(m.agent)}</span><strong>${esc(m.name)}</strong>
+      <span class='mini'>${m.installCount>0?'✓ Importado '+m.installCount+' vez(es)':'Ainda não importado'}</span>
+      ${m.messageUrl?`<a class='mini' href='${esc(m.messageUrl)}' target='_blank' rel='noreferrer noopener'>Abrir publicação original no Discord ↗</a>`:''}
+      <div class='discord-mod-actions'>
+        <button class='btn small primary' data-action='discord-install' data-id='${esc(m.id)}' ${state.busy||!state.configured?'disabled':''}>⇩ Instalar</button>
+        <button class='btn small ghost' data-action='discord-relink' data-id='${esc(m.id)}' title='Substituir um link expirado'>Novo link</button>
+        <button class='btn small ghost' data-action='discord-remove' data-id='${esc(m.id)}'>Remover</button>
+      </div></div></article>`;
+  }).join('');
+  return `<div class='sectionhead'><div><h3>Catálogo Discord</h3><p>Guarde links dos mods do SafeZone Hub e instale diretamente na pasta Mods do ZZMI.</p></div><span class='mini'>${all.length} mod(s) salvos</span></div>
+  <div class='panel'><h4>＋ Cadastrar mod do Discord</h4>
+    <p class='discord-note'>No Discord, clique com o botão direito no <b>arquivo ZIP/RAR/7z → Copiar link</b>. Cole o link do anexo, não o link da mensagem. Como você é apenas membro do servidor, este catálogo é pessoal: ele não lê canais nem acessa sua conta. Os links do Discord podem expirar; use <b>Novo link</b> quando necessário.</p>
+    <div class='discord-fields'>
+      <label>Agente <select id='discordAgent'>${orderedAgents().map(a=>`<option value='${esc(a)}' ${a==='Remielle'?'selected':''}>${esc(a)}</option>`).join('')}</select></label>
+      <label>Nome do mod <input id='discordModName' maxlength='120' placeholder='Ex.: Remielle — Police' autocomplete='off'></label>
+      <label class='wide'>Link direto do arquivo <input id='discordFileURL' type='url' placeholder='https://cdn.discordapp.com/attachments/.../mod.zip?...' autocomplete='off'></label>
+      <label>Link da mensagem (opcional) <input id='discordMessageURL' type='url' placeholder='https://discord.com/channels/...' autocomplete='off'></label>
+      <label>Link da imagem de prévia (opcional) <input id='discordPreviewURL' type='url' placeholder='https://cdn.discordapp.com/attachments/.../preview.png' autocomplete='off'></label>
+    </div>
+    <div class='row' style='margin-top:12px;justify-content:flex-end'><button class='btn primary' id='discordAddBtn'>＋ Adicionar ao catálogo</button></div>
+  </div>
+  <div class='sectionhead' style='margin-top:22px'><div><h3>Mods salvos</h3><p>Selecione uma agente para filtrar e instale o arquivo sem extrair manualmente.</p></div>
+    <select id='discordAgentFilter' class='select'>${agents.map(a=>`<option ${state.discordAgentFilter===a?'selected':''}>${esc(a)}</option>`).join('')}</select>
+  </div>
+  ${shown.length?`<div class='discord-cards'>${cards}</div>`:`<div class='empty'><div class='big'>📦</div><h4>Nenhum mod neste catálogo</h4><p>Adicione o link direto de um ZIP do Discord para começar.</p></div>`}`;
+}
+async function addDiscordCatalogMod(){
+  if(state.busy)return;
+  const input={agent:$('#discordAgent').value,name:$('#discordModName').value,downloadUrl:$('#discordFileURL').value,messageUrl:$('#discordMessageURL').value,previewUrl:$('#discordPreviewURL').value};
+  state.busy=true;
+  try{const result=await api('discord/add',{method:'POST',body:input});await refresh();state.discordAgentFilter='Todos';render();toast(result.message||'Mod adicionado')}
+  catch(err){toast(err.message,true)}finally{state.busy=false}
+}
+async function installDiscordCatalogMod(id){
+  if(state.busy)return;
+  const mod=(state.discordMods||[]).find(m=>m.id===id);if(!mod)return;
+  if(mod.installCount>0&&!confirm(`Você já importou ${mod.name} anteriormente. Instalar outra cópia mesmo assim?`))return;
+  state.busy=true;
+  try{toast('Baixando e instalando mod do Discord…');const result=await api('discord/install',{method:'POST',body:{id}});await refresh();toast(result.message||'Mod instalado com sucesso')}
+  catch(err){toast(err.message,true)}finally{state.busy=false}
+}
+async function updateDiscordCatalogLink(id){
+  const mod=(state.discordMods||[]).find(m=>m.id===id);if(!mod||state.busy)return;
+  const direct=prompt('Cole o novo link DIRETO do arquivo no Discord:',mod.downloadUrl);
+  if(direct===null)return;
+  try{const result=await api('discord/update-link',{method:'POST',body:{id,downloadUrl:direct}});await refresh();toast(result.message||'Link atualizado')}
+  catch(err){toast(err.message,true)}
+}
+async function removeDiscordCatalogMod(id){
+  if(state.busy||!confirm('Remover este item do catálogo? Mods já instalados serão mantidos.'))return;
+  try{await api('discord/remove',{method:'POST',body:{id}});await refresh();toast('Removido do catálogo')}
+  catch(err){toast(err.message,true)}
+}
 function renderLibraryResults(){const el=$('#libraryResult');if(!el)return;const mods=filteredMods();el.innerHTML=mods.length?`<div class="grid cards3">${mods.map(modCard).join('')}</div>`:`<div class="empty"><div class="big">🧩</div><h4>Nenhum mod encontrado</h4><p>Verifique os filtros e a pasta configurada.</p></div>`}
 function renderAgentResults(){const el=$('#agentResult');if(!el)return;const candidates=state.showAllAgents?orderedAgents():orderedAgents().filter(a=>modsForAgent(a).length||profileMap().has(a));const names=candidates.filter(a=>(a.toLowerCase()+' '+factionOf(a).toLowerCase()).includes(state.agentSearch.toLowerCase())&&(state.agentFaction==='Todas'||factionOf(a)===state.agentFaction));el.innerHTML=names.length?names.map(agentCard).join(''):`<div class="empty">Nenhum agente com esses filtros.</div>`}
 function render(){document.getElementById('nav').innerHTML=navHTML();$('#page-overview').innerHTML=heroOverview();$('#page-library').innerHTML=libraryPage();$('#page-agents').innerHTML=agentsPage();$('#page-discord').innerHTML=discordCatalogPage();$('#page-profiles').innerHTML=profilesPage();$('#page-conflicts').innerHTML=conflictsPage();$('#page-settings').innerHTML=settingsPage()}
