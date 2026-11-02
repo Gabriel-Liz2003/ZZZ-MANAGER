@@ -252,6 +252,21 @@ select option{background:#172032;color:#edf3ff;}
 .official-use{border:1px solid #628a4b;background:#273c2a;color:#efffdf;border-radius:9px;padding:8px 9px;font-size:11px;font-weight:850}
 .official-use:disabled{opacity:.4}
 .official-mods{border-top:1px solid #314253;padding:10px;display:grid;gap:8px}
+.official-mod-list{display:grid;gap:8px;min-height:0}
+.official-mod-list.is-expanded{max-height:300px;overflow-y:auto;overscroll-behavior:contain;scrollbar-width:thin;scrollbar-color:#526a78 #15212e;padding-right:5px}
+.official-mod-list.is-expanded::-webkit-scrollbar{width:7px}
+.official-mod-list.is-expanded::-webkit-scrollbar-thumb{background:#526a78;border-radius:8px}
+.official-mod[hidden],.official-search-empty[hidden]{display:none!important}
+.official-mods-toolbar{display:flex;align-items:center;gap:8px;min-width:0}
+.official-mod-search{flex:1;min-width:0;width:100%;background:#0d1724;border:1px solid #425468;border-radius:10px;padding:10px 11px;color:#f0f7ff;font:inherit;font-size:12px;outline:none}
+.official-mod-search:focus{border-color:#a1d96b;box-shadow:0 0 0 2px rgba(161,217,107,.12)}
+.official-mod-search::placeholder{color:#8c9faf}
+.official-mod-count{flex-shrink:0;color:#a8bdce;font-size:11px;font-variant-numeric:tabular-nums}
+.official-mod-show{display:flex;align-items:center;justify-content:center;gap:6px;width:100%;border:1px solid #395064;border-radius:11px;background:#1d2c3a;color:#d6ebf7;font:inherit;font-weight:750;font-size:12px;padding:10px 12px;cursor:pointer;transition:background .15s}
+.official-mod-show:hover{background:#273b4b;border-color:#86b96f}
+.official-mod-show:focus-visible{outline:2px solid #c6ff48;outline-offset:2px}
+.official-search-empty{font-size:12px;color:#9eb3c5;text-align:center;padding:18px 8px}
+@media(max-width:480px){.official-mod-list.is-expanded{max-height:260px}.official-mod-show{padding:12px}}
 .official-mod{display:flex;gap:9px;align-items:center;border:1px solid #314053;padding:7px;border-radius:11px}
 .official-mod img{width:55px;height:60px;object-fit:cover;border-radius:8px}
 .official-mod-name{flex:1;min-width:0;overflow-wrap:anywhere;font-size:12px;font-weight:800}
@@ -443,6 +458,11 @@ let customImageNames=new Set();let photoVersion=0;
 let pickerModID=null, pickerCurrentAgent='';
 const expandedModHotkeys=new Set();
 const expandedAgentSkins=new Set();
+const expandedOfficialModLists=new Set();
+const officialModSearchQueries=new Map();
+const officialModPreviewLimit=3;
+function outfitListKey(agent,outfitId){return String(agent)+'\u001f'+String(outfitId)}
+function normalizeModSearch(value){return String(value||'').normalize('NFD').replace(/[\u0300-\u036f]/g,'').toLocaleLowerCase('pt-BR')}
 let lastWardrobeResult=[];
 const $=s=>document.querySelector(s);
 const $$=s=>[...document.querySelectorAll(s)];
@@ -602,11 +622,20 @@ function officialArt(agent,costume){
 function costumeCard(agent,costume){
  const current=(state.selectedOutfits||{})[agent]||'base';
  const owned=costume.base||!!(state.ownedOutfits||{})[agent+'/'+costume.id];
- const mods=modsForAgent(agent).filter(m=>(m.outfitId||'base')===costume.id);
+ const mods=modsForAgent(agent).filter(m=>(m.outfitId||'base')===costume.id)
+   .sort((a,b)=>Number(!!b.enabled)-Number(!!a.enabled) || String(a.name||'').localeCompare(String(b.name||''),'pt-BR',{sensitivity:'base'}));
+ const listKey=outfitListKey(agent,costume.id);
+ const expandable=mods.length>officialModPreviewLimit;
+ const expanded=expandable && expandedOfficialModLists.has(listKey);
+ const search=expanded?(officialModSearchQueries.get(listKey)||''):'';
+ const filtered=expanded&&search?mods.filter(m=>normalizeModSearch(m.name).includes(normalizeModSearch(search))):mods;
+ const visible=expanded?filtered:mods.slice(0,officialModPreviewLimit);
+ const activeCount=mods.filter(m=>m.enabled).length;
+ const listId='outfit-mods-'+encodeURIComponent(listKey).replace(/%/g,'_');
  return `<div class="official-outfit ${current===costume.id?'chosen':''}">
  <div class="official-head">${officialArt(agent,costume)}<div class="official-info">
  <b>${esc(costume.name)}</b>
- <small>${costume.base?'Traje padrão do jogo':'Traje oficial alternativo'} · ${mods.length} mods associados</small>
+ <small>${costume.base?'Traje padrão do jogo':'Traje oficial alternativo'} · ${mods.length} mods associados${activeCount?' · '+activeCount+' ativo'+(activeCount===1?'':'s'):''}</small>
  ${current===costume.id?'<small style="color:#c6ff48">● Selecionado no gerenciador</small>':''}
  ${costume.base?'':`<label class="official-own"><input type="checkbox" data-own-costume="1" data-agent="${esc(agent)}" data-outfit="${esc(costume.id)}" ${owned?'checked':''}> Possuo no jogo</label>`}
  <button class="official-use" data-action="official-select" data-agent="${esc(agent)}" data-outfit="${esc(costume.id)}" data-id="" ${owned?'':'disabled'}>Sem mod</button>
@@ -614,11 +643,19 @@ function costumeCard(agent,costume){
  ${customImageNames.has(outfitPhotoKey(agent,costume.id))?`<button class="btn small ghost" data-action="delete-outfit-photo" data-agent="${esc(agent)}" data-outfit="${esc(costume.id)}">Restaurar</button>`:''}
  </div></div>
  <div class="official-mods">
- ${mods.length?mods.map(m=>`<div class="official-mod">
+ ${expanded?`<div class="official-mods-toolbar">
+   <input class="official-mod-search" type="search" data-outfit-mod-search="1" data-agent="${esc(agent)}" data-outfit="${esc(costume.id)}" placeholder="Buscar entre ${mods.length} mods…" aria-label="Buscar mods de ${esc(agent)}: ${esc(costume.name)}" value="${esc(search)}" autocomplete="off">
+   <span class="official-mod-count" data-outfit-mod-count="1">${filtered.length} de ${mods.length}</span>
+ </div>`:''}
+ <div class="official-mod-list ${expanded?'is-expanded':''}" id="${esc(listId)}" role="list" aria-label="Mods de ${esc(agent)} para ${esc(costume.name)}">
+ ${mods.length?visible.map(m=>`<div class="official-mod" role="listitem" data-mod-name="${esc(m.name)}">
  ${m.preview?`<img loading="lazy" src="${previewURL(m.id)}" data-fallback="${esc(portraitURL(agent)||portraitData(agent))}" alt="${esc(m.name)}">`:officialArt(agent,costume)}
  <span class="official-mod-name">${esc(m.name)} ${m.enabled?'✓':''}</span>
  <button class="official-use" data-action="official-select" data-agent="${esc(agent)}" data-outfit="${esc(costume.id)}" data-id="${esc(m.id)}" ${owned?'':'disabled'}>Usar</button>
  </div>`).join(''):'<span class="official-note">Nenhum mod vinculado. Classifique seus mods na Biblioteca.</span>'}
+ ${expanded?`<span class="official-search-empty" ${visible.length?'hidden':''}>Nenhum mod corresponde à busca.</span>`:''}
+ </div>
+ ${expandable?`<button type="button" class="official-mod-show" data-action="toggle-outfit-mods" data-agent="${esc(agent)}" data-outfit="${esc(costume.id)}" aria-expanded="${expanded?'true':'false'}" aria-controls="${esc(listId)}">${expanded?'▴ Recolher lista':'▾ Ver todos os '+mods.length+' mods'}</button>`:''}
  </div></div>`;
 }
 function agentCard(name){
@@ -830,6 +867,18 @@ document.addEventListener('click',async e=>{
     const a=action.dataset.action;
     if(a==='toggle') return toggleMod(action.dataset.id,!action.classList.contains('on'));
     if(a==='official-select')return chooseOfficialCostume(action.dataset.agent,action.dataset.outfit,action.dataset.id);
+    if(a==='toggle-outfit-mods'){
+      const key=outfitListKey(action.dataset.agent,action.dataset.outfit);
+      const willExpand=!expandedOfficialModLists.has(key);
+      if(willExpand){expandedOfficialModLists.add(key)}
+      else{expandedOfficialModLists.delete(key);officialModSearchQueries.delete(key)}
+      renderAgentResults();
+      if(willExpand){
+        const input=$('[data-outfit-mod-search]').find(el=>el.dataset.agent===action.dataset.agent&&el.dataset.outfit===action.dataset.outfit);
+        input?.focus({preventScroll:true});
+      }
+      return;
+    }
     if(a==='pick-outfit-photo'){state.photoFor=outfitPhotoKey(action.dataset.agent,action.dataset.outfit);return $('#photoFile').click()}
     if(a==='delete-outfit-photo')return removeCustomPhoto(outfitPhotoKey(action.dataset.agent,action.dataset.outfit));
     if(a==='save-appearance')return saveAppearance(action.dataset.id);
@@ -869,6 +918,24 @@ document.addEventListener('click',async e=>{
   const chip=e.target.closest('[data-status-chip]'); if(chip){state.filters.status=chip.dataset.statusChip;return render()}
 });
 document.addEventListener('input',e=>{
+  if(e.target.matches('[data-outfit-mod-search]')){
+    const {agent,outfit}=e.target.dataset;
+    const key=outfitListKey(agent,outfit);
+    officialModSearchQueries.set(key,e.target.value);
+    const card=e.target.closest('.official-outfit');
+    const query=normalizeModSearch(e.target.value);
+    let matches=0;
+    for(const item of card.querySelectorAll('.official-mod-list .official-mod')){
+      const match=normalizeModSearch(item.dataset.modName).includes(query);
+      item.hidden=!match;
+      if(match)matches++;
+    }
+    const count=card.querySelector('[data-outfit-mod-count]');
+    if(count)count.textContent=matches+' de '+card.querySelectorAll('.official-mod-list .official-mod').length;
+    const empty=card.querySelector('.official-search-empty');
+    if(empty)empty.hidden=matches>0;
+    return;
+  }
   if(e.target.matches('#searchInput')){state.filters.search=e.target.value;return renderLibraryResults()}
   if(e.target.matches('#charFilter')){state.filters.char=e.target.value;return render()}
   if(e.target.matches('#statusFilter')){state.filters.status=e.target.value;return render()}
