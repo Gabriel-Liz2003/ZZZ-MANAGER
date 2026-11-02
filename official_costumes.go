@@ -85,8 +85,12 @@ type OutfitPick struct{
  MustEquipInGame bool `json:"mustEquipInGame"`
 }
 func planOutfitSelection(mods []*Mod,agent,outfitID,modID string)([]wardrobeChange,OutfitPick,error){
+ return planOutfitSelectionWithExtras(mods,agent,outfitID,modID,nil)
+}
+func planOutfitSelectionWithExtras(mods []*Mod,agent,outfitID,modID string,extras []OfficialOutfit)([]wardrobeChange,OutfitPick,error){
  if !knownWardrobeAgent(agent){return nil,OutfitPick{},errors.New("Agente inválido")}
  costume,valid:=lookupOfficialCostume(agent,outfitID)
+ if !valid{for _,o:=range extras{if strings.EqualFold(o.Agent,agent)&&o.ID==outfitID{costume=o;valid=true;break}}}
  if !valid{return nil,OutfitPick{},errors.New("Traje oficial não encontrado para este agente")}
  group:=wardrobeGroup(mods,agent)
  // The agent may have no installed mods; the selection still updates
@@ -111,6 +115,9 @@ func planOutfitSelection(mods []*Mod,agent,outfitID,modID string)([]wardrobeChan
 // Randomization chooses ONE outfit, and at most one of that outfit's mods.
 // Characters with no currently enabled mods are ignored.
 func planOfficialOutfitRandom(mods []*Mod,owned map[string]bool,choose func(int)(int,error))([]wardrobeChange,[]OutfitPick,error){
+ return planOfficialOutfitRandomWithExtras(mods,owned,choose,nil)
+}
+func planOfficialOutfitRandomWithExtras(mods []*Mod,owned map[string]bool,choose func(int)(int,error),extras []OfficialOutfit)([]wardrobeChange,[]OutfitPick,error){
  agents:=map[string]bool{}
  for _,m:=range mods{if m.Enabled&&knownWardrobeAgent(m.Character){agents[m.Character]=true}}
  names:=[]string{};for a:=range agents{names=append(names,a)};sort.Strings(names)
@@ -120,7 +127,13 @@ func planOfficialOutfitRandom(mods []*Mod,owned map[string]bool,choose func(int)
   // Only outfits with at least one installed compatible mod participate.
   // This preserves exactly one enabled mod per eligible agent.
   candidates:=[]struct{outfit OfficialOutfit; variants []string}{}
-  for _,o:=range officialCostumesFor(agent){
+  listed:=officialCostumesFor(agent)
+  seen:=map[string]bool{}
+  for _,o:=range listed{seen[o.ID]=true}
+  for _,o:=range extras{
+   if strings.EqualFold(o.Agent,agent)&&!seen[o.ID]{listed=append(listed,o);seen[o.ID]=true}
+  }
+  for _,o:=range listed{
    if !o.Base&&!owned[agent+"/"+o.ID]{continue}
    variants:=[]string{}
    for _,m:=range wardrobeGroup(mods,agent){if m.OutfitID==o.ID&&!m.InheritedDisabled{variants=append(variants,m.ID)}}
@@ -133,7 +146,7 @@ func planOfficialOutfitRandom(mods []*Mod,owned map[string]bool,choose func(int)
   variants:=candidates[n].variants
   j,err:=choose(len(variants));if err!=nil{return nil,nil,err}
   if j<0||j>=len(variants){return nil,nil,errors.New("Variante sorteada inválida")}
-  step,pick,err:=planOutfitSelection(mods,agent,outfit.ID,variants[j])
+  step,pick,err:=planOutfitSelectionWithExtras(mods,agent,outfit.ID,variants[j],extras)
   if err!=nil{return nil,nil,fmt.Errorf("%s: %w",agent,err)}
   changes=append(changes,step...);picks=append(picks,pick)
  }
