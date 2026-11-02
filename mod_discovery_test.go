@@ -123,3 +123,68 @@ func TestDisabledTopLevelModStillShowsKeysAsInactive(t *testing.T) {
   t.Fatalf("disabled mod should show only informational keys: %#v",mods)
  }
 }
+
+
+func TestSoldierZeroAnbyBodyFaceWeaponAreOneMod(t *testing.T) {
+ root:=makeMods(t)
+ bundle:="Soldier 0-Anby-yyzj-"
+ writeModFile(t,root,bundle+"/body/0-Anbi-body.ini","[KeySwap0]\nkey = LEFT\n[TextureOverrideBody]\nhash = 12345678\n")
+ writeModFile(t,root,bundle+"/body/alternate.ini","[TextureOverrideBody2]\nhash = 12345678\n")
+ writeModFile(t,root,bundle+"/face/0-Anbi-face.ini","[TextureOverrideFace]\nhash = abcdef12\n")
+ writeModFile(t,root,bundle+"/weapon/0-Anbi-weapon.ini","[TextureOverrideWeapon]\nhash = cdef1234\n")
+ writeModFile(t,root,bundle+"/说明readme.txt","One character, three components")
+ mods,conflicts,err:=scanMods(root,nil)
+ if err!=nil{t.Fatal(err)}
+ if len(mods)!=1{t.Fatalf("Expected one package rooted at %s, found %d: %#v",bundle,len(mods),mods)}
+ mod:=mods[0]
+ if mod.ID!=bundle||mod.Name!=bundle||mod.RelPath!=bundle||mod.path!=filepath.Join(root,bundle)||mod.IniCount!=4||!mod.Enabled{
+  t.Fatalf("Wrong mod root, name or INI count: %#v",mod)
+ }
+ if len(mod.Hotkeys)!=1||mod.Hotkeys[0].Keys[0]!="LEFT"{
+  t.Fatalf("Keyboard mappings in body must be retained: %#v",mod.Hotkeys)
+ }
+ if !mod.hashes["12345678"]||!mod.hashes["abcdef12"]||!mod.hashes["cdef1234"]||len(mod.hashes)!=3{
+  t.Fatalf("Hashes from all parts not merged: %#v",mod.hashes)
+ }
+ if len(conflicts)!=0{t.Fatalf("Hashes in the same multi-part mod must not conflict: %#v",conflicts)}
+ // The disabled state must apply to the entire bundle, not just body.
+ if err:=toggleMod(mod,false);err!=nil{t.Fatal(err)}
+ for _,part:=range []string{"body","face","weapon"}{
+  for _,name:=range []string{"0-Anbi-body.ini","0-Anbi-face.ini","0-Anbi-weapon.ini"}{
+   if _,err:=os.Stat(filepath.Join(root,"DISABLED_"+bundle,part,name));err==nil{break}
+   if name=="0-Anbi-weapon.ini"{t.Fatalf("After disabling, the %s part is missing",part)}
+  }
+ }
+ mods,_,err=scanMods(root,nil)
+ if err!=nil||len(mods)!=1||mods[0].Enabled||mods[0].ID!=bundle{t.Fatalf("Wrong disabled package: %v %#v",err,mods)}
+ if err:=toggleMod(mods[0],true);err!=nil{t.Fatal(err)}
+ mods,_,err=scanMods(root,nil)
+ if err!=nil||len(mods)!=1||!mods[0].Enabled{t.Fatalf("Wrong restored package: %v %#v",err,mods)}
+ if actual:=findModForSavedProfile(mods,bundle+"/body");actual!=mods[0]{
+  t.Fatal("A profile saved with the old body-folder ID must resolve to the parent package")
+ }
+}
+func TestCharacterCollectionOfIndependentOutfitsNotMerged(t *testing.T){
+ root:=makeMods(t)
+ writeModFile(t,root,"Anby/School Outfit/body/config.ini","hash = 11111111")
+ writeModFile(t,root,"Anby/Casual Outfit/face/config.ini","hash = 22222222")
+ writeModFile(t,root,"Anby/Weapon Swap/weapon/config.ini","hash = 33333333")
+ mods,_,err:=scanMods(root,nil)
+ if err!=nil{t.Fatal(err)}
+ if len(mods)!=3{t.Fatalf("Unrelated outfit directories must remain independent: %#v",mods)}
+ for _,m:=range mods{if m.ID=="Anby"||m.Name=="Anby"{t.Fatalf("Character collections cannot be toggled as one outfit: %#v",m)}}
+}
+func TestMultiPartBundleKeepsDisabledResourcesInactive(t *testing.T){
+ root:=makeMods(t)
+ bundle:="Soldier 0-Anby-yyzj-"
+ writeModFile(t,root,bundle+"/body/0-Anbi-body.ini","[KeyActive]\nkey = H\nhash = 12345678\n")
+ writeModFile(t,root,bundle+"/DISABLED_face/old.ini","[KeyInactive]\nkey = J\nhash = aaaaaaaa\n")
+ writeModFile(t,root,bundle+"/weapon/weapon.ini","hash = 87654321\n")
+ mods,_,err:=scanMods(root,nil)
+ if err!=nil{t.Fatal(err)}
+ if len(mods)!=1{t.Fatalf("Disabled component must stay inside package: %#v",mods)}
+ if mods[0].hashes["aaaaaaaa"]{t.Fatal("Disabled component hash must not count as active")}
+ if len(mods[0].Hotkeys)!=2||mods[0].Hotkeys[0].Disabled||!mods[0].Hotkeys[1].Disabled{
+  t.Fatalf("Inactive key should be visible as inactive: %#v",mods[0].Hotkeys)
+ }
+}
