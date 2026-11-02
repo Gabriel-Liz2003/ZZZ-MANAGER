@@ -49,9 +49,7 @@ type Config struct {
 	OutfitTags map[string]string `json:"outfitTags"`
 	SelectedOutfits map[string]string `json:"selectedOutfits"`
 	OwnedOutfits map[string]bool `json:"ownedOutfits"`
-	HashDatabaseStatus string `json:"hashDatabaseStatus"`
-	HashDatabaseCount int `json:"hashDatabaseCount"`
-}
+	}
 type Mod struct {
 	ID                string `json:"id"`
 	Name              string `json:"name"`
@@ -97,6 +95,8 @@ type State struct {
 	OfficialOutfits []OfficialOutfit `json:"officialOutfits"`
 	SelectedOutfits map[string]string `json:"selectedOutfits"`
 	OwnedOutfits map[string]bool `json:"ownedOutfits"`
+	HashDatabaseStatus string `json:"hashDatabaseStatus"`
+	HashDatabaseCount int `json:"hashDatabaseCount"`
 }
 type APIError struct {
 	Error string `json:"error"`
