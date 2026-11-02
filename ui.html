@@ -700,6 +700,13 @@ function settingsPage(){return `
     <p class="note" style="margin-top:14px">Se o caminho estiver certo, a biblioteca será lida automaticamente no próximo refresh.</p>
   </div>
   <div class="panel">
+    <h4>Organizar pastas por agente</h4>
+    <p>Cria pastas como <code>Mods/Remielle/</code> e <code>Mods/Anby/</code> e move <b>o pacote completo</b> de cada mod para seu agente, mantendo body/face/weapon juntos.</p>
+    <p class="note">Mods desativados permanecem desativados. Perfis e classificações salvos são atualizados. Mods sem personagem identificado não são movidos; destinos ocupados são preservados com nomes distintos.</p>
+    <div class="row" style="margin-top:12px"><button class="btn primary" id="organizeAgentFoldersBtn" ${!state.configured?'disabled':''}>📁 Organizar biblioteca por agente</button></div>
+    <p class="note" style="margin-top:10px">Feche o ZZZ antes de organizar uma biblioteca existente. Você verá quantos mods serão movidos antes de confirmar. O programa guarda uma cópia de segurança da configuração.</p>
+  </div>
+  <div class="panel">
     <h4>Identificação automática por hashes</h4>
     <p>Compara os hashes dos modelos nos arquivos .ini com uma base comunitária atualizável de personagens e roupas oficiais. <b>Não identificado</b> quando os hashes não distinguem o traje com segurança. A classificação não altera nem move seus mods.</p>
     <div class="fieldblock"><label>Banco de dados de modelos</label><div class="row"><span class="mini">${esc(state.hashDatabaseStatus||'Aguardando sincronização')}</span><span class="mini">${state.hashDatabaseCount||0} hashes</span></div></div>
@@ -787,6 +794,27 @@ async function removeCustomPhoto(name){
 }
 async function toggleFavorite(name){try{await api('favorite',{method:'POST',body:{name,favorite:!state.favorites.includes(name)}});await refresh()}catch(e){toast(e.message,true)}}
 async function saveCustomProfile(){const name=prompt('Nome do perfil personalizado:');if(!name)return;try{await api('save-profile',{method:'POST',body:{name:name.trim()}});await refresh();toast('Perfil personalizado salvo')}catch(e){toast(e.message,true)}}
+async function organizeAgentFolders(){
+  if(state.busy)return;
+  if(!state.configured){setPage('settings');toast('Configure a pasta Mods primeiro',true);return}
+  state.busy=true;
+  try{
+    const preview=await api('organize-agents/preview');
+    const count=Number(preview.moved||0);
+    if(!count){
+      toast(preview.unknown?('Não há novos mods identificados para mover. '+preview.unknown+' mod(s) sem agente identificado.'):'Biblioteca já organizada por agente.');
+      return;
+    }
+    const warnings=(preview.skipped||[]).length;
+    const message=`Organizar ${count} mod(s) nas pastas dos agentes?\n\n${preview.alreadyOrganized||0} já organizado(s), ${preview.unknown||0} não identificado(s), ${warnings} ignorado(s).\n\nFeche o ZZZ antes de continuar. As pastas completas serão movidas e os perfis atualizados. Um backup da configuração será criado.`;
+    if(!confirm(message))return;
+    const result=await api('organize-agents',{method:'POST',body:{}});
+    await refresh();
+    const skips=(result.skipped||[]).length;
+    toast(`Organização concluída: ${result.moved} mod(s) movido(s).${skips?' '+skips+' não movido(s).':''}`);
+  }catch(e){toast(e.message,true)}
+  finally{state.busy=false}
+}
 async function saveConfig(){const path=$('#modDirInput')?.value||'';try{await api('configure',{method:'POST',body:{path}});await refresh();toast('Pasta configurada com sucesso')}catch(e){toast(e.message,true)}}
 async function pickFolder(){try{const data=await api('pick-folder',{method:'POST'});$('#modDirInput').value=data.path}catch(e){toast(e.message,true)}}
 async function checkUpdates(){
@@ -899,6 +927,7 @@ document.addEventListener('click',async e=>{
   }
   if(e.target.matches('#randomWardrobeBtn')) return randomizeWardrobe();
   if(e.target.matches('#syncHashDatabaseBtn'))return syncHashDatabase();
+  if(e.target.matches('#organizeAgentFoldersBtn'))return organizeAgentFolders();
   if(e.target.matches('#refreshBtn')) return refresh();
   if(e.target.matches('#checkUpdatesTop,#checkUpdatesBtn')) return checkUpdates();
   if(e.target.matches('#installUpdatesBtn')) return installUpdates();
