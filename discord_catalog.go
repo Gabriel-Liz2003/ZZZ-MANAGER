@@ -9,7 +9,6 @@ import (
 	"io"
 	"net/http"
 	"net/url"
-	"os"
 	"path"
 	"path/filepath"
 	"strings"
@@ -210,11 +209,3 @@ func (a *App) tagNewDiscordArchive(folder, agent string) (int, error) {
 	return count, err
 }
 
-// This helper is also exercised with an in-memory ZIP, so the feature can
-// be tested without reading a real Discord channel or storing user tokens.
-func testDiscordArchiveHeaderAllowed(raw string) bool {
-	_, err := isDiscordCDNURL(raw, true)
-	return err == nil
-}
-
-var _ = os.ErrNotExist
