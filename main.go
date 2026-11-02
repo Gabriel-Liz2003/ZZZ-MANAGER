@@ -143,7 +143,7 @@ func main() {
 		w.Header().Set("Content-Type", "text/html; charset=utf-8")
 		w.Header().Set("Cache-Control", "no-store")
 		w.Header().Set("X-Content-Type-Options", "nosniff")
-		w.Header().Set("Content-Security-Policy", "default-src 'none'; script-src 'self' 'unsafe-inline'; style-src 'unsafe-inline'; img-src 'self' data: https://fastcdn.hoyoverse.com; connect-src 'self'; base-uri 'none'; form-action 'none'")
+		w.Header().Set("Content-Security-Policy", "default-src 'none'; script-src 'self' 'unsafe-inline'; style-src 'unsafe-inline'; img-src 'self' data: https://fastcdn.hoyoverse.com https://media.esports.gg https://zenless-zone-zero.fandom.com https://static.wikia.nocookie.net; connect-src 'self'; base-uri 'none'; form-action 'none'")
 		w.Write([]byte(strings.ReplaceAll(string(body), "__APP_TOKEN__", app.token)))
 	})
 	mux.HandleFunc("/assets/portraits.js", func(w http.ResponseWriter, r *http.Request) {
