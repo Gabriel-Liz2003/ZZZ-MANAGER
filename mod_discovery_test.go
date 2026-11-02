@@ -188,3 +188,26 @@ func TestMultiPartBundleKeepsDisabledResourcesInactive(t *testing.T){
   t.Fatalf("Inactive key should be visible as inactive: %#v",mods[0].Hotkeys)
  }
 }
+
+
+func TestConsolidatedPackageKeepsPriorComponentTags(t *testing.T){
+ root:=makeMods(t)
+ bundle:="Soldier 0-Anby-yyzj-"
+ writeModFile(t,root,bundle+"/body/body.ini","[TextureOverride]\nhash = 11111111\n")
+ writeModFile(t,root,bundle+"/face/face.ini","[TextureOverride]\nhash = 22222222\n")
+ writeModFile(t,root,bundle+"/weapon/weapon.ini","[TextureOverride]\nhash = 33333333\n")
+ tags:=map[string]string{bundle+"/body":"Anby"}
+ mods,_,err:=scanMods(root,tags)
+ if err!=nil||len(mods)!=1||mods[0].Character!="Anby"{t.Fatalf("Legacy agent assignment lost: %v %#v",err,mods)}
+ a:=&App{config:Config{Tags:tags,OutfitTags:map[string]string{bundle+"/body":"base"}}}
+ a.enrichMods(mods)
+ if mods[0].OutfitID!="base"||mods[0].OutfitSource!="manual"{
+  t.Fatalf("Legacy outfit assignment lost: %#v",mods[0])
+ }
+ if choice:=inheritedModSetting(map[string]string{bundle+"/body":"base",bundle+"/face":"chandelier"},bundle);choice!=""{
+  t.Fatalf("Conflicting legacy outfit categories must remain unresolved, got %q",choice)
+ }
+ if choice:=inheritedModSetting(map[string]string{bundle:"chandelier",bundle+"/body":"base"},bundle);choice!="chandelier"{
+  t.Fatalf("Explicit parent classification must win, got %q",choice)
+ }
+}
