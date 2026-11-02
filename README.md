@@ -1,4 +1,11 @@
-# NEON/MODS — ZZZ Mod Desk v3.7.0
+# NEON/MODS — ZZZ Mod Desk v3.7.1
+
+## v3.7.1 — Alterar atalhos de mods diretamente no gerenciador
+
+Na **Biblioteca**, abra a seção **⌨ Comandos no jogo**, clique no botão do atalho (por exemplo, `NUM + 3`) e pressione a nova tecla (por exemplo, `L`). O app atualiza apenas a declaração `key =` correta do `.ini`; combinações com Ctrl, Shift e Alt e comandos de retorno (`back =`) também são editáveis. **Esc** cancela a captura.
+
+O gerenciador preserva o resto do arquivo (incluindo comentários e a codificação UTF-16 quando presente), cria uma cópia de segurança `.zzzmanager.bak` na primeira alteração e atualiza a Biblioteca após salvar. Com o jogo aberto, recarregue os mods ou reinicie o ZZZ para aplicar o novo atalho. As teclas de mods desativados só têm efeito quando o mod voltar a ser ativado.
+
 
 Gerenciador de mods do Zenless Zone Zero para Windows, com suporte à pasta `Mods` do ZZMI / XXMI.
 
