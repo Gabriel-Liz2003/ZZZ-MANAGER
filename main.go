@@ -49,6 +49,7 @@ type Config struct {
 	OutfitTags map[string]string `json:"outfitTags"`
 	SelectedOutfits map[string]string `json:"selectedOutfits"`
 	OwnedOutfits map[string]bool `json:"ownedOutfits"`
+	DiscordMods []DiscordCatalogMod `json:"discordMods"`
 	}
 type Mod struct {
 	ID                string `json:"id"`
@@ -97,6 +98,7 @@ type State struct {
 	OwnedOutfits map[string]bool `json:"ownedOutfits"`
 	HashDatabaseStatus string `json:"hashDatabaseStatus"`
 	HashDatabaseCount int `json:"hashDatabaseCount"`
+	DiscordMods []DiscordCatalogMod `json:"discordMods"`
 }
 type APIError struct {
 	Error string `json:"error"`
@@ -109,6 +111,7 @@ type App struct {
 	previewCache map[string]string
  hashCatalog *hashCatalog
  hashStatus string
+	catalogInstalling bool
 }
 
 func main() {
@@ -521,7 +524,7 @@ func scanMods(root string, tags map[string]string) ([]*Mod, []Conflict, error) {
 	return mods, conflicts, nil
 }
 func (a *App) state() (State, error) {
-	result := State{ModDir: a.config.ModDir, Mods: []*Mod{}, Profiles: []Profile{}, Conflicts: []Conflict{}, Favorites: append([]string{}, a.config.Favorites...), CustomPhotos: []string{}, OfficialOutfits: resolvedOfficialOutfits(a.hashCatalog),HashDatabaseStatus:a.hashStatus,SelectedOutfits:a.config.SelectedOutfits,OwnedOutfits:a.config.OwnedOutfits}
+	result := State{ModDir: a.config.ModDir, Mods: []*Mod{}, Profiles: []Profile{}, Conflicts: []Conflict{}, Favorites: append([]string{}, a.config.Favorites...), CustomPhotos: []string{}, OfficialOutfits: resolvedOfficialOutfits(a.hashCatalog),HashDatabaseStatus:a.hashStatus,SelectedOutfits:a.config.SelectedOutfits,OwnedOutfits:a.config.OwnedOutfits,DiscordMods:append([]DiscordCatalogMod{},a.config.DiscordMods...)}
 	for n := range a.config.PhotoFiles {
 		result.CustomPhotos = append(result.CustomPhotos, n)
 	}
@@ -616,6 +619,99 @@ func (a *App) api(w http.ResponseWriter, r *http.Request) {
         if err!=nil{apiFail(w,409,err.Error());return}
         jsonWrite(w,200,result)
         return
+
+	case "discord/add":
+		if r.Method != http.MethodPost { break }
+		var input DiscordCatalogMod
+		if err := decodeRequest(r, &input); err != nil {
+			apiFail(w, 400, "Dados do mod inválidos")
+			return
+		}
+		input.ID = ""
+		input.InstallCount = 0
+		input, err := normalizeDiscordCatalogMod(input)
+		if err != nil { apiFail(w, 400, err.Error()); return }
+		if len(a.config.DiscordMods) >= 500 { apiFail(w, 400, "O catálogo aceita até 500 mods"); return }
+		for _, existing := range a.config.DiscordMods {
+			if existing.DownloadURL == input.DownloadURL {
+				apiFail(w, 409, "Este arquivo já está cadastrado. Atualize seu link se ele expirou")
+				return
+			}
+		}
+		input.ID, err = newDiscordCatalogID()
+		if err != nil { apiFail(w, 500, err.Error()); return }
+		before := append([]DiscordCatalogMod(nil), a.config.DiscordMods...)
+		a.config.DiscordMods = append(a.config.DiscordMods, input)
+		if err := a.save(); err != nil {
+			a.config.DiscordMods = before
+			apiFail(w, 500, err.Error())
+			return
+		}
+		jsonWrite(w, 200, map[string]any{"message":"Mod adicionado ao catálogo", "mod":input})
+		return
+	case "discord/remove":
+		if r.Method != http.MethodPost { break }
+		var req struct { ID string `json:"id"` }
+		if err := decodeRequest(r, &req); err != nil { apiFail(w, 400, "ID inválido"); return }
+		pos, ok := findDiscordCatalogMod(a.config.DiscordMods, req.ID)
+		if !ok { apiFail(w, 404, "Mod não encontrado"); return }
+		before := append([]DiscordCatalogMod(nil), a.config.DiscordMods...)
+		a.config.DiscordMods = append(a.config.DiscordMods[:pos], a.config.DiscordMods[pos+1:]...)
+		if err := a.save(); err != nil {
+			a.config.DiscordMods = before
+			apiFail(w, 500, err.Error())
+			return
+		}
+		jsonWrite(w, 200, map[string]string{"message":"Removido do catálogo; arquivos instalados preservados"})
+		return
+	case "discord/update-link":
+		if r.Method != http.MethodPost { break }
+		var req struct {
+			ID string `json:"id"`
+			DownloadURL string `json:"downloadUrl"`
+		}
+		if err := decodeRequest(r, &req); err != nil { apiFail(w, 400, "Dados inválidos"); return }
+		pos, ok := findDiscordCatalogMod(a.config.DiscordMods, req.ID)
+		if !ok { apiFail(w, 404, "Mod não encontrado"); return }
+		link, err := isDiscordCDNURL(req.DownloadURL, true)
+		if err != nil { apiFail(w, 400, err.Error()); return }
+		old := a.config.DiscordMods[pos].DownloadURL
+		a.config.DiscordMods[pos].DownloadURL = link
+		if err := a.save(); err != nil {
+			a.config.DiscordMods[pos].DownloadURL = old
+			apiFail(w, 500, err.Error())
+			return
+		}
+		jsonWrite(w, 200, map[string]string{"message":"Link atualizado"})
+		return
+	case "discord/install":
+		if r.Method != http.MethodPost { break }
+		var req struct { ID string `json:"id"` }
+		if err := decodeRequest(r, &req); err != nil { apiFail(w, 400, "ID inválido"); return }
+		pos, ok := findDiscordCatalogMod(a.config.DiscordMods, req.ID)
+		if !ok { apiFail(w, 404, "Mod não encontrado"); return }
+		if a.catalogInstalling { apiFail(w, 409, "Outro mod do Discord já está sendo baixado"); return }
+		item := a.config.DiscordMods[pos]
+		root, err := validDir(a.config.ModDir)
+		if err != nil { apiFail(w, 400, err.Error()); return }
+		a.catalogInstalling = true
+		// Do not lock the entire library for the duration of a network download.
+		a.mu.Unlock()
+		folder, installErr := downloadDiscordArchive(r.Context(), root, item.DownloadURL, nil)
+		a.mu.Lock()
+		a.catalogInstalling = false
+		if installErr != nil { apiFail(w, 400, installErr.Error()); return }
+		count, organizeErr := a.tagNewDiscordArchive(folder, item.Agent)
+		message := fmt.Sprintf("Pacote instalado: %s (%d mod(s) detectado(s))", folder, count)
+		if organizeErr != nil {
+			message += ". Atenção: verifique a organização na Biblioteca: " + organizeErr.Error()
+		}
+		if idx, found := findDiscordCatalogMod(a.config.DiscordMods, req.ID); found {
+			a.config.DiscordMods[idx].InstallCount++
+			if err := a.save(); err != nil { apiFail(w, 500, err.Error()); return }
+		}
+		jsonWrite(w, 200, map[string]string{"message":message})
+		return
 	case "state":
 		if r.Method != "GET" {
 			break
