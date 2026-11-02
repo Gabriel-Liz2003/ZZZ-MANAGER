@@ -241,7 +241,9 @@ func editModHotkey(mod *Mod, req hotkeyChange) error {
 			return fmt.Errorf("Falha ao criar backup: %w", err)
 		}
 		err = f.Close()
-	} else if !errors.Is(err, os.ErrExist) {
+	} else if errors.Is(err, os.ErrExist) {
+		err = nil // Preserve the original backup across future hotkey edits.
+	} else {
 		return fmt.Errorf("Falha ao criar backup: %w", err)
 	}
 	if err != nil {
