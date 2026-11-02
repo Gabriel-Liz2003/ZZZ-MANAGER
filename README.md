@@ -1,4 +1,12 @@
-# NEON/MODS — ZZZ Mod Desk v3.8.1
+# NEON/MODS — ZZZ Mod Desk v3.8.2
+
+## v3.8.2 — Reconhecer mods multipartes sem preview
+
+Corrige pacotes como `Mods/Ye Shunguang/YeShunguang-Purple Red Demon Spirit v2.0/{body,face,hair,hair2,tex,wuqi,wuqi2}/`: os arquivos INI dessas subpastas pertencem a **um único mod**. Antes, a detecção não reconhecia `hair2`, `tex`, `wuqi` e `wuqi2`, gerando vários cards e conflitos falsos.
+
+Agora o catálogo identifica as pastas componentes comuns (inclusive alternativas numeradas) sem exigir `preview.png`, soma os atalhos e variáveis persistentes, e ativa/desativa o pacote inteiro pelo diretório-pai. Não movimenta nem reescreve as pastas no reconhecimento. Trajes independentes dentro da pasta da agente seguem separados; perfis antigos que apontavam para as pastas internas podem usar o novo pacote-pai.
+
+
 
 ## v3.8.1 — Presets de aparência automáticos e sem Discord
 
