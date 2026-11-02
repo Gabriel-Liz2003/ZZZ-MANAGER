@@ -595,6 +595,18 @@ func (a *App) api(w http.ResponseWriter, r *http.Request) {
 		}
 		jsonWrite(w, 200, map[string]string{"path": p})
 		return
+	case "appearance/save":
+		if r.Method != "POST" { break }
+		var req struct { ID string `json:"id"` }
+		if err:=decodeRequest(r,&req);err!=nil {apiFail(w,400,"ID de mod inválido");return}
+		mods,_,err:=scanMods(a.config.ModDir,a.config.Tags)
+		if err!=nil{apiFail(w,400,err.Error());return}
+		m:=findMod(mods,req.ID)
+		if m==nil {apiFail(w,404,"Mod não encontrado");return}
+		matched,err:=syncModPersistentDefaults(a.config.ModDir,m)
+		if err!=nil{apiFail(w,400,err.Error());return}
+		jsonWrite(w,200,map[string]any{"message":fmt.Sprintf("Variação salva: %d variável(is) encontrada(s) no ZZMI. Backups .zzzmanager.bak mantidos.",matched),"matched":matched})
+		return
 	case "wardrobe/select":
 		if r.Method != "POST" { break }
 		var req struct { Agent string `json:"agent"`; ModID string `json:"modId"` }
