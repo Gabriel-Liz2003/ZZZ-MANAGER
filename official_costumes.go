@@ -43,6 +43,14 @@ var specialOfficialOutfits=[]OfficialOutfit{
  {Agent:"Phoenix",ID:"daydream-complex",Name:"Daydream Complex",Image:""},
  {Agent:"Phoenix",ID:"the-illness-called-life",Name:"The Illness Called Life",Image:""},
  {Agent:"Severian",ID:"solemnly-impeccable",Name:"Solemnly Impeccable",Image:""},
+ {Agent:"Remielle",ID:"seashade-pas-seul",Name:"Seashade Pas Seul",Image:""},
+ {Agent:"Remielle",ID:"moonlight-whispers",Name:"Moonlight Whispers",Image:""},
+ {Agent:"Remielle",ID:"moonlight-whispers-veil",Name:"Moonlight Whispers (Veil)",Image:""},
+ {Agent:"Sigrid",ID:"majestic-wavechaser",Name:"Majestic Wavechaser",Image:""},
+ {Agent:"Lucy",ID:"princess-on-holiday",Name:"Princess on Holiday",Image:""},
+ {Agent:"Nangong",ID:"heartfelt-support",Name:"Heartfelt Support",Image:""},
+ {Agent:"Aria",ID:"cuteness-loading",Name:"Cuteness Loading",Image:""},
+ {Agent:"Sunna",ID:"delusions-in-business",Name:"Delusions in Business",Image:""},
 }
 func officialCostumesFor(agent string)[]OfficialOutfit {
  result:=[]OfficialOutfit{{Agent:agent,ID:"base",Name:"Traje padrão",Base:true}}
