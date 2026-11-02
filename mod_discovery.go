@@ -13,18 +13,32 @@ import (
 // collection directories remain traversable and retain independent mods.
 func looksLikeSingleModPackage(parent string, entries []os.DirEntry) bool {
     name := strings.ToLower(prettyName(filepath.Base(parent)))
+    // Some modders split a single character replacement into component
+    // directories containing independent INIs. These must be toggled together.
+    // Do not mistake a character's collection of several outfits for one mod.
+    componentParts := 0
+    otherDirs := 0
     for _, item := range entries {
         if !item.IsDir() { continue }
         child := strings.ToLower(prettyName(item.Name()))
         if child == name {
             return true // common duplicate wrapper from ZIP/RAR
         }
-        // "toggles" and "resources" are supporting folders, not mods.
-        if child == "toggles" || child == "resources" || child == "textures" || child == "meshes" {
+        switch child {
+        case "toggles", "resources", "textures", "meshes":
+            // An explicit support directory indicates a packaged mod. A
+            // package with only "resources" still follows the old behavior.
             return true
+        case "body", "face", "weapon", "hair", "head", "accessories":
+            componentParts++
+        default:
+            otherDirs++
         }
     }
-    return false
+    // Example: Mods/Soldier 0-Anby-yyzj-/{body,face,weapon}/*.ini.
+    // A character collection containing unrelated outfit subdirectories
+    // remains traversable, preserving independent mods and their switches.
+    return componentParts >= 2 && otherDirs == 0
 }
 
 // anyModINI is used only for directories with evidence of a package layout;
