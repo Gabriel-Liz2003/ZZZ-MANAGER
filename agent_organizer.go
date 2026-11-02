@@ -85,6 +85,14 @@ func (a *App) planAgentOrganization(onlyInside string)(agentOrganizePlan,error){
    plan.Summary.Skipped=append(plan.Summary.Skipped,m.ID+": pasta principal já ocupa o nome do agente")
    continue
   }
+  // Existing folders that are already actual mod roots are not category
+  // containers, even if they have no INI at their top level.
+  targetIsMod:=false
+  for _,existing:=range mods{if filepath.Clean(existing.path)==filepath.Clean(targetDir){targetIsMod=true;break}}
+  if targetIsMod{
+   plan.Summary.Skipped=append(plan.Summary.Skipped,m.ID+": "+agent+" já é um pacote de mod")
+   continue
+  }
   if st,err:=os.Lstat(targetDir);err==nil{
    if !st.IsDir()||st.Mode()&os.ModeSymlink!=0{
     plan.Summary.Skipped=append(plan.Summary.Skipped,m.ID+": destino não é uma pasta normal")
