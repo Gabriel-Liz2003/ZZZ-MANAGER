@@ -18,8 +18,25 @@ func looksLikeSingleModPackage(parent string, entries []os.DirEntry) bool {
     // Do not mistake a character's collection of several outfits for one mod.
     componentParts := 0
     otherDirs := 0
+    hasPackagePreview := false
     for _, item := range entries {
-        if !item.IsDir() { continue }
+        if !item.IsDir() {
+            // A preview at the wrapper level is evidence of a packaged outfit
+            // rather than an agent's folder of unrelated outfits. Never count
+            // images within its children or symlinked entries as that evidence.
+            if item.Type()&os.ModeSymlink == 0 {
+                lower := strings.ToLower(item.Name())
+                ext := filepath.Ext(lower)
+                base := strings.TrimSuffix(lower, ext)
+                if ext == ".png" || ext == ".jpg" || ext == ".jpeg" || ext == ".webp" {
+                    switch base {
+                    case "preview", "preview_image", "previewimage", "thumbnail", "thumb", "cover":
+                        hasPackagePreview = true
+                    }
+                }
+            }
+            continue
+        }
         child := strings.ToLower(prettyName(item.Name()))
         if child == name {
             return true // common duplicate wrapper from ZIP/RAR
@@ -36,9 +53,16 @@ func looksLikeSingleModPackage(parent string, entries []os.DirEntry) bool {
         }
     }
     // Example: Mods/Soldier 0-Anby-yyzj-/{body,face,weapon}/*.ini.
-    // A character collection containing unrelated outfit subdirectories
-    // remains traversable, preserving independent mods and their switches.
-    return componentParts >= 2 && otherDirs == 0
+    if componentParts >= 2 && otherDirs == 0 {
+        return true
+    }
+    // Some authors mix a named skin folder with a separate component:
+    // Mods/Alice/<outfit>/aliceskin/*.ini and hair/*.ini. The outfit-level
+    // preview identifies the common wrapper. The known agent directory itself
+    // must NEVER be consolidated as it can contain many separate outfits.
+    return !knownWardrobeAgent(prettyName(filepath.Base(parent))) &&
+        hasPackagePreview && componentParts >= 1 && otherDirs >= 1
+
 }
 
 // anyModINI is used only for directories with evidence of a package layout;

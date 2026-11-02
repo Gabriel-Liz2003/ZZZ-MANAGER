@@ -1,4 +1,10 @@
-# NEON/MODS — ZZZ Mod Desk v3.7.1
+# NEON/MODS — ZZZ Mod Desk v3.7.2
+
+## v3.7.2 — Correção de mods divididos entre skin e cabelo
+
+Pacotes como `Mods/Alice/<nome do traje>/aliceskin/` + `hair/` são agora reconhecidos como **um único mod**, quando a pasta do traje contém um `preview.png`. O gerenciador usa a pasta inteira como a unidade de ativação/desativação, conserva todos os INIs, comandos e hashes e considera conflitos somente entre mods distintos. Os trajes diferentes dentro de `Mods/Alice/` permanecem independentes; o app não move nem apaga arquivos para aplicar esta correção.
+
+
 
 ## v3.7.1 — Alterar atalhos de mods diretamente no gerenciador
 
