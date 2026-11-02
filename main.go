@@ -421,6 +421,12 @@ func scanMods(root string, tags map[string]string) ([]*Mod, []Conflict, error) {
 		mod := &Mod{ID: id, Name: prettyName(name), RelPath: filepath.ToSlash(rel), Enabled: enabled, InheritedDisabled: inherited, path: p, hashes: make(map[string]bool)}
 		mod.Hotkeys = []ModHotkey{}
 		mod.Character = guessCharacter(mod.Name)
+        // Folder names directly under Mods may be categories named after
+        // agents. This helps detect mods with generic names such as "body".
+        // An explicit saved tag is still authoritative.
+        if mod.Character=="Sem categoria" && len(parts)>1 && knownWardrobeAgent(prettyName(parts[0])){
+            mod.Character=prettyName(parts[0])
+        }
 		if t := inheritedModSetting(tags,id); t != "" {
 			mod.Character = t
 		}
@@ -596,6 +602,19 @@ func (a *App) api(w http.ResponseWriter, r *http.Request) {
         a.mu.Lock()
         if err!=nil{apiFail(w,502,err.Error());return}
         jsonWrite(w,200,map[string]any{"message":"Base de hashes sincronizada. A biblioteca foi reclassificada.","hashes":a.hashCatalog.HashCount})
+        return
+	case "organize-agents/preview":
+        if r.Method!="GET"{break}
+        plan,err:=a.planAgentOrganization("")
+        if err!=nil{apiFail(w,400,err.Error());return}
+        jsonWrite(w,200,plan.Summary)
+        return
+    case "organize-agents":
+        if r.Method!="POST"{break}
+        // The user confirms this action through the UI before any rename.
+        result,err:=a.organizeAgentFolders("")
+        if err!=nil{apiFail(w,409,err.Error());return}
+        jsonWrite(w,200,result)
         return
 	case "state":
 		if r.Method != "GET" {
@@ -797,7 +816,13 @@ func (a *App) api(w http.ResponseWriter, r *http.Request) {
 			apiFail(w, 500, err.Error())
 			return
 		}
-		jsonWrite(w, 200, map[string]string{"message": "Categoria salva"})
+		message:="Categoria salva"
+        if cleanAgentFolder(req.Character){
+          result,moveErr:=a.organizeAgentFolders("")
+          if moveErr!=nil{message+="; pastas não reorganizadas: "+moveErr.Error()
+          }else if result.Moved>0{message+=fmt.Sprintf(" · %d pasta(s) alocada(s) por agente",result.Moved)}
+        }
+        jsonWrite(w,200,map[string]string{"message":message})
 		return
 	case "save-profile":
 		if r.Method != "POST" {
@@ -962,7 +987,11 @@ func (a *App) api(w http.ResponseWriter, r *http.Request) {
 			apiFail(w, 400, err.Error())
 			return
 		}
-		jsonWrite(w, 200, map[string]string{"message": "Pacote importado: " + modName})
+		info,organizeErr:=a.organizeAgentFolders(filepath.Join(a.config.ModDir,modName))
+        message:="Pacote importado: "+modName
+        if organizeErr!=nil{message+=". Organização automática não concluída: "+organizeErr.Error()
+        }else if info.Moved>0{message+=fmt.Sprintf(" · %d pasta(s) alocada(s) por agente",info.Moved)}
+        jsonWrite(w,200,map[string]string{"message":message})
 		return
 	case "import-folder":
 		if r.Method != "POST" { break }
@@ -970,7 +999,11 @@ func (a *App) api(w http.ResponseWriter, r *http.Request) {
 		if err != nil { apiFail(w, 400, "Pasta inválida"); return }
 		modName, err := importFolder(a.config.ModDir, r.URL.Query().Get("name"), parts)
 		if err != nil { apiFail(w, 400, err.Error()); return }
-		jsonWrite(w, 200, map[string]string{"message": "Pasta importada: " + modName})
+		info,organizeErr:=a.organizeAgentFolders(filepath.Join(a.config.ModDir,modName))
+        message:="Pasta importada: "+modName
+        if organizeErr!=nil{message+=". Organização automática não concluída: "+organizeErr.Error()
+        }else if info.Moved>0{message+=fmt.Sprintf(" · %d pasta(s) alocada(s) por agente",info.Moved)}
+        jsonWrite(w,200,map[string]string{"message":message})
 		return
 	case "agent-photo":
 		if r.Method != "GET" {
