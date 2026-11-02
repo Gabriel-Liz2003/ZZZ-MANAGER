@@ -257,6 +257,12 @@ select option{background:#172032;color:#edf3ff;}
 .official-mod-name{flex:1;min-width:0;overflow-wrap:anywhere;font-size:12px;font-weight:800}
 .official-note{color:#a7b4c7;font-size:11px}
 .mod-outfit-select{background:#1b2938;color:#edfbff;border:1px solid #516780;border-radius:10px;padding:8px;max-width:100%}
+
+.hash-recognition{margin:9px 0;padding:8px 10px;border-radius:11px;background:rgba(105,236,160,.07);border:1px solid rgba(105,236,160,.17);font-size:11px;color:#c7f3d2;line-height:1.4}
+.hash-recognition.manual{color:#d9c8ff;border-color:rgba(175,144,255,.20);background:rgba(175,144,255,.065)}
+.hash-recognition.unknown{color:#f2ce91;border-color:rgba(250,199,105,.23);background:rgba(250,199,105,.06)}
+.hash-unknown-gallery{padding:12px;border:1px dashed rgba(244,194,116,.26);border-radius:14px;color:#f0cf97;font-size:12px;line-height:1.5}
+.hash-unknown-gallery b{display:block;margin-bottom:5px}
 </style>
 </head>
 <body>
@@ -530,7 +536,12 @@ function modCard(m){return `<div class="card modcard">
   <div class="cardbody">
     <div class="title">${esc(m.name)}</div>
     <div class="subtitle">${esc(m.character||'Sem categoria')}</div>
-    <div class="meta" style="align-items:center;margin-top:10px"><span class="mini">Traje:</span><select class="mod-outfit-select" data-mod-outfit="${esc(m.id)}">${officialCostumes(m.character).map(o=>`<option value="${esc(o.id)}" ${(m.outfitId||'base')===o.id?'selected':''}>${esc(o.name)}</option>`).join('')}</select></div>
+    <div class="meta" style="align-items:center;margin-top:10px"><span class="mini">Traje:</span><select class="mod-outfit-select" data-mod-outfit="${esc(m.id)}"><option value="unknown" ${(!m.outfitId||m.outfitId==='unknown')?'selected':''}>Não identificado</option>${officialCostumes(m.character).map(o=>`<option value="${esc(o.id)}" ${m.outfitId===o.id?'selected':''}>${esc(o.name)}</option>`).join('')}</select></div>
+    <div class="hash-recognition ${m.outfitSource==='manual'?'manual':m.outfitSource!=='hash'?'unknown':''}">
+      ${m.outfitSource==='hash'?`✓ Identificado por hashes (${m.outfitEvidence||1} correspondência(s), confiança ${m.outfitConfidence==='high'?'alta':'média'}).`:
+       m.outfitSource==='manual'?'✎ Classificação manual — pode alterar no seletor acima.':
+       `⚠ ${esc(m.outfitStatus||'Traje não identificado pelos hashes')}. Escolha o traje manualmente somente se tiver certeza.`}
+    </div>
     <div class="meta"><span class="mini">${m.iniCount} ini</span><span class="mini">Atualizado ${esc(m.lastModified||'—')}</span><span class="mini">${m.preview?'Com preview':'Sem preview'}</span></div>
     <div class="mod-keybind-empty" style="margin-top:9px;color:${m.persistentVariables>0?'#c9f39d':'#efc684'}">${m.persistentVariables>0?
        '✓ '+m.persistentVariables+' variável(is) persistente(s) declarada(s). Pressione F10 no jogo antes de trocar de skin; o retorno ao mesmo preset ainda depende do ZZMI.':
@@ -622,6 +633,7 @@ function agentCard(name){
  <div class="box"><small>Mods</small><strong>${mods.length}</strong></div>
  <div class="box"><small>Ativos</small><strong>${enabled}</strong></div></div>
  <div class="official-outfits">${officialCostumes(name).map(c=>costumeCard(name,c)).join('')}</div>
+ ${mods.some(m=>m.outfitId==='unknown')?`<div class="hash-unknown-gallery"><b>⚠ Mods sem traje identificado</b>${mods.filter(m=>m.outfitId==='unknown').map(m=>`<div>${esc(m.name)} — ${esc(m.outfitStatus||'revisão necessária')}</div>`).join('')}<button class="btn small ghost" data-action="view-agent" data-agent="${esc(name)}">Classificar na Biblioteca</button></div>`:''}
  <div class="agentactions">
  <button class="btn small" data-action="view-agent" data-agent="${esc(name)}">Ver mods</button>
  <button class="btn small" data-action="save-agent-profile" data-agent="${esc(name)}">Salvar perfil</button>
@@ -651,6 +663,13 @@ function settingsPage(){return `
     <p class="note" style="margin-top:14px">Se o caminho estiver certo, a biblioteca será lida automaticamente no próximo refresh.</p>
   </div>
   <div class="panel">
+    <h4>Identificação automática por hashes</h4>
+    <p>Compara os hashes dos modelos nos arquivos .ini com uma base comunitária atualizável de personagens e roupas oficiais. <b>Não identificado</b> quando os hashes não distinguem o traje com segurança. A classificação não altera nem move seus mods.</p>
+    <div class="fieldblock"><label>Banco de dados de modelos</label><div class="row"><span class="mini">${esc(state.hashDatabaseStatus||'Aguardando sincronização')}</span><span class="mini">${state.hashDatabaseCount||0} hashes</span></div></div>
+    <div class="row" style="margin-top:12px"><button class="btn primary" id="syncHashDatabaseBtn">↻ Atualizar hashes e reclassificar</button></div>
+    <p class="note" style="margin-top:9px">Fonte: base comunitária do ZZZ Mod Hub (GitHub). Você pode substituir qualquer detecção manualmente. Os mods desconhecidos não são colocados automaticamente no traje padrão.</p>
+  </div>
+  <div class="panel">
     <h4>Atualizações do aplicativo</h4>
     <p>Atualização automática via Releases do GitHub. Baixa o executável oficial, valida SHA-256 e reinicia sem apagar mods nem perfis.</p>
     <div class="fieldblock"><label>Versão instalada</label><div class="row"><span class="mini">v3.1.0</span><span class="mini">Repositório: Gabriel-Liz2003/ZZZ-MANAGER</span></div></div>
@@ -675,6 +694,17 @@ async function saveAppearance(id){
  try{
   const data=await api('appearance/save',{method:'POST',body:{id}});
   await refresh();toast(data.message||'Variação salva');
+ }catch(e){toast(e.message,true)}
+ finally{state.busy=false}
+}
+async function syncHashDatabase(){
+ if(state.busy)return;
+ state.busy=true;
+ try{
+  toast('Consultando a base comunitária de hashes…');
+  const data=await api('hash-database/sync',{method:'POST',body:{}});
+  await refresh();
+  toast(data.message||'Banco sincronizado e mods classificados');
  }catch(e){toast(e.message,true)}
  finally{state.busy=false}
 }
@@ -819,6 +849,7 @@ document.addEventListener('click',async e=>{
     if(a==='delete-custom-profile') return deleteProfile(action.dataset.name);
   }
   if(e.target.matches('#randomWardrobeBtn')) return randomizeWardrobe();
+  if(e.target.matches('#syncHashDatabaseBtn'))return syncHashDatabase();
   if(e.target.matches('#refreshBtn')) return refresh();
   if(e.target.matches('#checkUpdatesTop,#checkUpdatesBtn')) return checkUpdates();
   if(e.target.matches('#installUpdatesBtn')) return installUpdates();
@@ -879,6 +910,7 @@ document.addEventListener('drop',async e=>{
 });
 document.addEventListener('error',e=>{const img=e.target;if(img?.tagName==='IMG'&&img.dataset.fallback&&img.src!==img.dataset.fallback){img.src=img.dataset.fallback}},true);
 refresh();
+setTimeout(()=>refresh(),10000);
 </script>
 </body>
 </html>
