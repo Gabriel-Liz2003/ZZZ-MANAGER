@@ -135,7 +135,7 @@ func slugHashOutfit(name string)string{
   if r>='a'&&r<='z'||r>='0'&&r<='9'{
    if dash&&b.Len()>0{b.WriteByte('-')}
    b.WriteRune(r);dash=false
-  }else if r=='''||r=='’'{continue}else{dash=true}
+  }else if r==39||r=='’'{continue}else{dash=true}
  }
  return b.String()
 }
