@@ -1,6 +1,15 @@
-# NEON/MODS — ZZZ Mod Desk v3.5.0
+# NEON/MODS — ZZZ Mod Desk v3.6.0
 
 Gerenciador de mods do Zenless Zone Zero para Windows, com suporte à pasta `Mods` do ZZMI / XXMI.
+
+## v3.6.0 — Identificação automática por hashes de modelos
+
+- Os arquivos `.ini` de cada mod são analisados **somente para leitura**, inclusive quando a pasta principal do mod estiver desativada. Subpastas internas `DISABLED_` são ignoradas na identificação.
+- O programa consulta a base pública comunitária de hashes do [ZZZ Mod Hub](https://github.com/the-sea-man/ZZZ-Mod-Hub/blob/main/src/characters.json), que reúne `draw_vb`, `position_vb`, `ib` e hashes dos demais buffers de cada personagem e traje. Uma cópia é salva localmente em `model_hash_database.json`; o aplicativo continua funcionando offline com o último cache.
+- A base é sincronizada ao abrir o app e pode ser atualizada em **Configurações → Atualizar hashes e reclassificar**. Roupas oficiais novas conhecidas pela base também entram automaticamente no catálogo, sem esperar uma release do gerenciador.
+- Um hash que só aparece em um traje de um agente fornece evidência para classificá-lo; duas ou mais correspondências exclusivas aumentam a confiança. **Hashes compartilhados** não diferenciam as roupas. Se o mod possuir evidências exclusivas de trajes diferentes, aparecerá como **Ambíguo**; se não houver evidência, aparecerá como **Não identificado**. O gerenciador não assume a roupa padrão por causa do nome de arquivo.
+- A biblioteca identifica a fonte da classificação (**Hash / Manual / Não identificado**) e seu grau de confiança. **A classificação manual tem prioridade sobre a automática** e pode ser alterada na Biblioteca. Mods desconhecidos não são incluídos silenciosamente em um traje ou no sorteio.
+- **Limitações:** uma base comunitária pode ainda não conter modelos recém-lançados e os hashes podem mudar entre patches. Mods de interface, texturas isoladas ou pacotes multiagente podem permanecer sem identificação. Isso não significa que o mod esteja incorreto.
 
 ## v3.5.0 — Trajes oficiais separados dos mods
 
