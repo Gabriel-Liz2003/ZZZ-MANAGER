@@ -178,7 +178,14 @@ func copyAgentConfig(cfg Config,changes []agentMove)Config {
   unique:=map[string]bool{}
   moved:=make([]string,0,len(ids))
   for _,id:=range ids{
-   id=remapOldModID(id,changes)
+   // A saved ID for an old child component now references the one
+   // complete parent package, so profiles cannot activate duplicates.
+   for _,change:=range changes{
+    if id==change.OldID || strings.HasPrefix(id,change.OldID+"/"){
+     id=change.NewID
+     break
+    }
+   }
    if !unique[id]{unique[id]=true;moved=append(moved,id)}
   }
   next.Profiles[name]=moved
