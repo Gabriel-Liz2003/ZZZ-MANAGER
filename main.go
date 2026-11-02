@@ -660,6 +660,12 @@ func (a *App) api(w http.ResponseWriter, r *http.Request) {
 		if err:=decodeRequest(r,&req);err!=nil{apiFail(w,400,"Dados inválidos");return}
 		mods,_,err:=scanMods(a.config.ModDir,a.config.Tags);if err!=nil{apiFail(w,400,err.Error());return}
 		m:=findMod(mods,req.ID);if m==nil{apiFail(w,404,"Mod não encontrado");return}
+        if req.OutfitID=="auto"{
+           delete(a.config.OutfitTags,m.ID)
+           if err:=a.save();err!=nil{apiFail(w,500,err.Error());return}
+           jsonWrite(w,200,map[string]string{"message":"Classificação manual removida. A próxima leitura usará somente os hashes."})
+           return
+        }
 		if req.OutfitID!="unknown"&&!a.hasOfficialOutfit(m.Character,req.OutfitID){apiFail(w,400,"Traje não pertence ao agente do mod");return}
 		a.config.OutfitTags[m.ID]=req.OutfitID
 		if err:=a.save();err!=nil{apiFail(w,500,err.Error());return}
