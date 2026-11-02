@@ -58,6 +58,7 @@ type Mod struct {
 	LastModified      string `json:"lastModified"`
 	Conflicts         int    `json:"conflicts"`
 	Hotkeys           []ModHotkey `json:"hotkeys"`
+	PersistentVariables int `json:"persistentVariables"`
 	path              string
 	previewPath       string
 	hashes            map[string]bool
@@ -445,6 +446,7 @@ func scanMods(root string, tags map[string]string) ([]*Mod, []Conflict, error) {
 		sort.SliceStable(mod.Hotkeys, func(i, j int) bool {
 			return !mod.Hotkeys[i].Disabled && mod.Hotkeys[j].Disabled
 		})
+		mod.PersistentVariables = countPersistInModDir(p)
 		mod.Preview = bestPreview != ""
 		mod.previewPath = bestPreview
 		if st, err := os.Stat(p); err == nil {
