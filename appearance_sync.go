@@ -16,63 +16,8 @@ import (
 
 // Only replace literal numeric defaults explicitly declared as global persist.
 // The other INI settings, keybinds and mod resources remain untouched.
-var editablePersistentConstant = regexp.MustCompile(`(?i)^(\s*global\s+persist\s+\$)([a-z_][a-z0-9_]*)(\s*=\s*)([-+]?(?:[0-9]+(?:\.[0-9]*)?|\.[0-9]+)(?:[eE][-+]?[0-9]+)?)(\s*(?:[;#].*)?)package main
-
-import (
-	"bufio"
-	"errors"
-	"fmt"
-	"io/fs"
-	"log"
-	"os"
-	"path/filepath"
-	"regexp"
-	"strconv"
-	"strings"
-	"time"
-)
-
-// Only replace literal numeric defaults explicitly declared as global persist.
-// The other INI settings, keybinds and mod resources remain untouched.
-)
-var runtimeNumericValue = regexp.MustCompile(`^[-+]?(?:[0-9]+(?:\.[0-9]*)?|\.[0-9]+)(?:[eE][-+]?[0-9]+)?package main
-
-import (
-	"bufio"
-	"errors"
-	"fmt"
-	"io/fs"
-	"log"
-	"os"
-	"path/filepath"
-	"regexp"
-	"strconv"
-	"strings"
-	"time"
-)
-
-// Only replace literal numeric defaults explicitly declared as global persist.
-// The other INI settings, keybinds and mod resources remain untouched.
-var editablePersistentConstant = regexp.MustCompile(`(?i)^(\s*global\s+persist\s+\$)([a-z_][a-z0-9_]*)(\s*=\s*)([-+]?(?:[0-9]+(?:\.[0-9]*)?|\.[0-9]+)(?:[eE][-+]?[0-9]+)?)(\s*(?:[;#].*)?)package main
-
-import (
-	"bufio"
-	"errors"
-	"fmt"
-	"io/fs"
-	"log"
-	"os"
-	"path/filepath"
-	"regexp"
-	"strconv"
-	"strings"
-	"time"
-)
-
-// Only replace literal numeric defaults explicitly declared as global persist.
-// The other INI settings, keybinds and mod resources remain untouched.
-)
-)
+var editablePersistentConstant = regexp.MustCompile(`(?i)^(\s*global\s+persist\s+\$)([a-z_][a-z0-9_]*)(\s*=\s*)([-+]?(?:[0-9]+(?:\.[0-9]*)?|\.[0-9]+)(?:[eE][-+]?[0-9]+)?)(\s*(?:[;#].*)?)$`)
+var runtimeNumericValue = regexp.MustCompile(`^[-+]?(?:[0-9]+(?:\.[0-9]*)?|\.[0-9]+)(?:[eE][-+]?[0-9]+)?$`)
 
 type AppearanceAutoStatus struct {
 	Enabled   bool   `json:"enabled"`
