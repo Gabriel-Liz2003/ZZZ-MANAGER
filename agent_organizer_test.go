@@ -1,6 +1,8 @@
 package main
 
 import (
+ "bytes"
+ "net/http/httptest"
  "os"
  "path/filepath"
  "strings"
@@ -124,4 +126,43 @@ func TestOrganizerLeavesAgentNamedModRootUntouched(t *testing.T){
   t.Fatalf("Cannot move an extra mod into already used mod root: %#v",result)
  }
  if _,err:=os.Stat(filepath.Join(root,"Remielle Extra","mod.ini"));err!=nil{t.Fatal(err)}
+}
+
+func TestNewZipImportsIntoRecognizedAgentFolder(t *testing.T){
+ root:=makeMods(t)
+ a:=setupAgentOrganizer(t,root)
+ a.token="test"
+ archive:=makeZIP(t,map[string]string{
+  "body/body.ini":"[TextureOverride]\nhash = aaaaaaaa\n",
+  "face/face.ini":"[TextureOverride]\nhash = bbbbbbbb\n",
+  "weapon/weapon.ini":"[TextureOverride]\nhash = cccccccc\n",
+ })
+ req:=httptest.NewRequest("POST","/api/import?name=Remielle%20Dress.zip",bytes.NewReader(archive))
+ req.Header.Set("X-Desk-Token","test")
+ rec:=httptest.NewRecorder()
+ a.api(rec,req)
+ if rec.Code!=200{t.Fatalf("Import failed: %d %s",rec.Code,rec.Body.String())}
+ for _,part:=range []string{"body/body.ini","face/face.ini","weapon/weapon.ini"}{
+  file:=filepath.Join(root,"Remielle","Remielle Dress",filepath.FromSlash(part))
+  if _,err:=os.Stat(file);err!=nil{t.Fatalf("Expected imported package component %s: %v",file,err)}
+ }
+ if _,err:=os.Stat(filepath.Join(root,"Remielle Dress"));!os.IsNotExist(err){t.Fatal("Empty old wrapper should be removed")}
+ mods,_,err:=scanMods(root,a.config.Tags)
+ if err!=nil||len(mods)!=1||mods[0].Character!="Remielle"||mods[0].IniCount!=3{
+  t.Fatalf("Incorrect imported mod: %v %#v",err,mods)
+ }
+}
+
+func TestChangingCharacterMovesOnlySelectedMod(t *testing.T){
+ root:=makeMods(t)
+ writeModFile(t,root,"Unsorted Outfit/mod.ini","hash=12345678")
+ writeModFile(t,root,"Roxy Dress/mod.ini","hash=87654321")
+ a:=setupAgentOrganizer(t,root)
+ a.token="test"
+ req:=httptest.NewRequest("POST","/api/tag",strings.NewReader(`{"id":"Unsorted Outfit","character":"Remielle"}`))
+ req.Header.Set("X-Desk-Token","test")
+ rec:=httptest.NewRecorder();a.api(rec,req)
+ if rec.Code!=200{t.Fatalf("%d %s",rec.Code,rec.Body.String())}
+ if _,err:=os.Stat(filepath.Join(root,"Remielle","Unsorted Outfit","mod.ini"));err!=nil{t.Fatal(err)}
+ if _,err:=os.Stat(filepath.Join(root,"Roxy Dress","mod.ini"));err!=nil{t.Fatal("Other mods must not be moved when changing one tag",err)}
 }
