@@ -219,6 +219,25 @@ select option{background:#172032;color:#edf3ff;}
 .agent-choice.selected{color:#ddfba0;background:rgba(198,255,72,.10);border-color:rgba(198,255,72,.20)}
 .agent-picker-hint{font-size:11px;color:#8799b0;padding:10px 18px 16px;border-top:1px solid #2b3648}
 @media(max-width:760px){.agent-choose-btn{width:100%}.mod-keybind-item{flex-direction:column}.keycaps{justify-content:flex-start;max-width:100%}}
+
+/* Installed skin gallery and agent wardrobe. */
+.wardrobe-actions{display:flex;flex-wrap:wrap;gap:10px;align-items:center}
+.wardrobe-actions .btn.primary{background:linear-gradient(135deg,#dfff97,#c6ff48);color:#1d260c}
+.skin-gallery{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:8px;margin:14px 0 4px}
+.skin-tile{min-width:0;padding:0;border:1px solid #364455;border-radius:15px;overflow:hidden;background:#101924;color:#e9eff8;text-align:left;transition:.2s}
+.skin-tile:hover{border-color:#bce877;transform:translateY(-2px)}
+.skin-tile.chosen{border-color:#b7f35d;box-shadow:0 0 0 1px #b7f35d}
+.skin-tile img{display:block;width:100%;height:100px;object-fit:cover;object-position:top;background:#151d2b}
+.skin-tile .skin-tile-meta{padding:8px;display:grid;gap:3px}
+.skin-tile .skin-tile-meta strong{font-size:11px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.skin-tile .skin-tile-meta small{font-size:10px;color:#aebac9}
+.skin-tile .skin-tile-meta small.chosen{color:#c5fc78}
+.skin-warning{margin:8px 0 0;color:#ecc47b;font-size:11px}
+.skin-more{width:100%;margin-top:7px;border:1px solid #304258;border-radius:11px;background:#172337;color:#dce9fb;padding:9px;font-size:12px;font-weight:800}
+.wardrobe-note{font-size:12px;color:#98aabd;margin:0 0 16px;line-height:1.6}
+.wardrobe-result{margin-top:12px;padding:14px 16px;border:1px solid rgba(198,255,72,.2);background:rgba(198,255,72,.045);border-radius:16px;color:#d9efc1}
+.wardrobe-result ul{margin:8px 0 0;padding-left:22px;columns:2;column-gap:20px}
+@media(max-width:760px){.wardrobe-result ul{columns:1}}
 </style>
 </head>
 <body>
@@ -398,6 +417,8 @@ const state={page:'overview',configured:false,modDir:'',mods:[],profiles:[],conf
 let customImageNames=new Set();let photoVersion=0;
 let pickerModID=null, pickerCurrentAgent='';
 const expandedModHotkeys=new Set();
+const expandedAgentSkins=new Set();
+let lastWardrobeResult=[];
 const $=s=>document.querySelector(s);
 const $$=s=>[...document.querySelectorAll(s)];
 function esc(s){return String(s??'').replace(/[&<>"']/g,m=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[m]))}
@@ -528,19 +549,41 @@ function libraryPage(){const mods=filteredMods();return `
 </div>
 <div class="chips">${['Todos','Ativos','Inativos','Conflitos'].map(s=>`<button class="chip ${state.filters.status===s?'active':''}" data-status-chip="${s}">${s}</button>`).join('')}</div>
 <div id="libraryResult">${mods.length?`<div class="grid cards3">${mods.map(modCard).join('')}</div>`:`<div class="empty"><div class="big">🧩</div><h4>Nenhum mod encontrado</h4><p>Não achei nenhum mod com os filtros atuais. Tenta limpar a busca ou conferir se a pasta configurada é realmente a pasta <b>Mods</b> do ZZMI.</p></div>`}</div>`}
+function skinTile(agent,mod,active){
+  const isOriginal=!mod;
+  const label=isOriginal?'Aparência original':mod.name;
+  const image=isOriginal?portraitTag(agent):(mod.preview?`<img loading="lazy" src="${previewURL(mod.id)}" alt="Skin ${esc(mod.name)}" data-fallback="${esc(portraitURL(agent)||portraitData(agent))}">`:`<img loading="lazy" src="${esc(portraitURL(agent)||portraitData(agent))}" alt="Sem imagem própria para ${esc(mod.name)}">`);
+  const status=active?'● Selecionada':isOriginal?'Visual padrão':mod.preview?'Prévia do mod':'Sem prévia da skin';
+  return `<button type="button" class="skin-tile ${active?'chosen':''}" data-action="choose-skin" data-agent="${esc(agent)}" data-id="${esc(mod?.id||'')}" title="Selecionar ${esc(label)} para ${esc(agent)}">
+    ${image}<div class="skin-tile-meta"><strong>${esc(label)}</strong><small class="${active?'chosen':''}">${esc(status)}</small></div>
+  </button>`;
+}
+function skinGallery(agent,mods){
+  if(!mods.length)return '<p class="note" style="margin-top:12px">Nenhuma skin instalada para este agente.</p>';
+  const expanded=expandedAgentSkins.has(agent);
+  const enabled=mods.filter(m=>m.enabled);
+  const visible=expanded?mods:mods.slice(0,3);
+  return `<div class="skin-gallery">
+    ${skinTile(agent,null,enabled.length===0)}
+    ${visible.map(m=>skinTile(agent,m,m.enabled)).join('')}
+  </div>
+  ${enabled.length>1?'<div class="skin-warning">⚠ Mais de uma skin ativa. Selecione uma opção para desativar as outras.</div>':''}
+  ${mods.length>3?`<button class="skin-more" data-action="show-skins" data-agent="${esc(agent)}">${expanded?'Recolher skins':`Ver todas as ${mods.length} skins`}</button>`:''}`;
+}
 function agentCard(name){const mods=modsForAgent(name);const enabled=mods.filter(m=>m.enabled).length;const saved=profileMap().get(name)||0;return `<div class="card agentcard">
   <div class="agentportrait" style="--agent-accent:${colorOf(name)}">
     ${portraitTag(name)}
     <div class="agentshade"></div>
-    <div class="agentname"><div><strong>${esc(name)}</strong><span>${mods.length?mods.length+' mods na biblioteca':'Sem mods detectados'}</span></div><span class="mini">${profileMap().has(name)?saved+' salvo(s)':'sem perfil'}</span></div>
+    <div class="agentname"><div><strong>${esc(name)}</strong><span>${mods.length?mods.length+' skins disponíveis':'Sem skins instaladas'}</span></div><span class="mini">${profileMap().has(name)?saved+' salvo(s)':'sem perfil'}</span></div>
   </div>
   <div class="cardbody">
     <div class="row" style="margin:-4px 0 11px;justify-content:space-between"><span class="mini" style="color:${colorOf(name)};border-color:${colorOf(name)}33">${esc(factionOf(name))}</span><button class="favorite-btn ${state.favorites.includes(name)?'saved':''}" data-action="favorite" data-agent="${esc(name)}" title="${state.favorites.includes(name)?'Remover dos favoritos':'Adicionar aos favoritos'}">${state.favorites.includes(name)?'★':'☆'}</button></div>
     <div class="agentstats">
-      <div class="box"><small>Mods</small><strong>${mods.length}</strong></div>
-      <div class="box"><small>Ativos</small><strong>${enabled}</strong></div>
+      <div class="box"><small>Skins</small><strong>${mods.length}</strong></div>
+      <div class="box"><small>Ativas</small><strong>${enabled}</strong></div>
       <div class="box"><small>Perfil</small><strong>${saved}</strong></div>
     </div>
+    ${skinGallery(name,mods)}
     <div class="agentactions">
       <button class="btn small" data-action="view-agent" data-agent="${esc(name)}">Ver mods</button>
       <button class="btn small" data-action="save-agent-profile" data-agent="${esc(name)}">Salvar perfil</button>
@@ -552,7 +595,9 @@ function agentCard(name){const mods=modsForAgent(name);const enabled=mods.filter
   </div>
 </div>`}
 function agentsPage(){const usedAgents=orderedAgents().filter(a=>modsForAgent(a).length||profileMap().has(a));const unusedAgents=orderedAgents().filter(a=>!usedAgents.includes(a));const all=state.showAllAgents?orderedAgents():usedAgents;const names=all.filter(a=>(a.toLowerCase()+' '+factionOf(a).toLowerCase()).includes(state.agentSearch.toLowerCase())&&(state.agentFaction==='Todas'||factionOf(a)===state.agentFaction));return `
-<div class="sectionhead"><div><h3>Agentes e suas skins</h3><p>Retratos oficiais quando disponíveis; favorite personagens e salve mods ativos em um perfil individual.</p></div><div class="toolbar"><button class="btn small" id="showAllAgentsBtn">${state.showAllAgents?'Mostrar só usados':'Mostrar todos'}</button></div></div>
+<div class="sectionhead"><div><h3>Galeria de skins</h3><p>Escolha uma skin ou o visual original para cada agente. Apenas uma opção por personagem.</p></div><div class="wardrobe-actions"><button class="btn primary" id="randomWardrobeBtn">🎲 Sortear aparências</button><button class="btn small" id="showAllAgentsBtn">${state.showAllAgents?'Mostrar só usados':'Mostrar todos'}</button></div></div>
+<p class="wardrobe-note">O sorteio altera apenas personagens que já possuem um mod ativo; para cada um, escolhe outra skin instalada ou a versão original. Alterações entram no jogo após F10. O gerenciador não lê nem salva automaticamente as variações internas acionadas por teclas.</p>
+<div id="wardrobeResult">${lastWardrobeResult.length?`<div class="wardrobe-result"><b>Último sorteio:</b><ul>${lastWardrobeResult.map(x=>`<li>${esc(x.agent)}: <b>${esc(x.name)}</b></li>`).join('')}</ul></div>`:''}</div>
 <div class="filterbar"><div class="search"><span>⌕</span><input id="agentSearchInput" placeholder="Buscar agente ou facção" value="${esc(state.agentSearch)}"></div><select id="agentFactionFilter" class="select">${['Todas',...new Set(AGENTS.map(factionOf))].sort().map(f=>`<option ${state.agentFaction===f?'selected':''}>${esc(f)}</option>`).join('')}</select></div><div class="agentgrid" id="agentResult">${names.length?names.map(agentCard).join(''):`<div class="empty" style="grid-column:1/-1"><div class="big">🪩</div><h4>Ainda não tem agentes usados</h4><p>Assim que o app detectar mods ou perfis de algum personagem, eles aparecem aqui. Você também pode usar “Mostrar todos”.</p></div>`}</div>
 ${!state.showAllAgents&&unusedAgents.length?`<div class="section"><div class="sectionhead"><div><h3>Agentes sem mods detectados</h3><p>Ocultos para a lista principal não ficar gigante.</p></div></div><div class="chips">${unusedAgents.slice(0,32).map(n=>`<button class="chip" data-action="view-agent" data-agent="${esc(n)}">${esc(n)}</button>`).join('')}${unusedAgents.length>32?`<span class="chip">+${unusedAgents.length-32}</span>`:''}</div></div>`:''}`}
 function profilesPage(){const profiles=customProfiles();return `
@@ -586,6 +631,23 @@ function settingsPage(){return `
 function renderLibraryResults(){const el=$('#libraryResult');if(!el)return;const mods=filteredMods();el.innerHTML=mods.length?`<div class="grid cards3">${mods.map(modCard).join('')}</div>`:`<div class="empty"><div class="big">🧩</div><h4>Nenhum mod encontrado</h4><p>Verifique os filtros e a pasta configurada.</p></div>`}
 function renderAgentResults(){const el=$('#agentResult');if(!el)return;const candidates=state.showAllAgents?orderedAgents():orderedAgents().filter(a=>modsForAgent(a).length||profileMap().has(a));const names=candidates.filter(a=>(a.toLowerCase()+' '+factionOf(a).toLowerCase()).includes(state.agentSearch.toLowerCase())&&(state.agentFaction==='Todas'||factionOf(a)===state.agentFaction));el.innerHTML=names.length?names.map(agentCard).join(''):`<div class="empty">Nenhum agente com esses filtros.</div>`}
 function render(){document.getElementById('nav').innerHTML=navHTML();$('#page-overview').innerHTML=heroOverview();$('#page-library').innerHTML=libraryPage();$('#page-agents').innerHTML=agentsPage();$('#page-profiles').innerHTML=profilesPage();$('#page-conflicts').innerHTML=conflictsPage();$('#page-settings').innerHTML=settingsPage()}
+async function chooseSkin(agent,modId){
+ if(state.busy)return;state.busy=true;
+ try{
+  const data=await api('wardrobe/select',{method:'POST',body:{agent,modId}});
+  await refresh();toast(data.message||'Skin selecionada');
+ }catch(e){toast(e.message,true)}
+ finally{state.busy=false}
+}
+async function randomizeWardrobe(){
+ if(state.busy)return;state.busy=true;
+ try{
+  const data=await api('wardrobe/random',{method:'POST',body:{}});
+  lastWardrobeResult=Array.isArray(data.choices)?data.choices:[];
+  await refresh();toast(data.message||'Novas aparências sorteadas');
+ }catch(e){toast(e.message,true)}
+ finally{state.busy=false}
+}
 async function toggleMod(id,enabled){if(state.busy)return;state.busy=true;try{await api('toggle',{method:'POST',body:{id,enabled}});await refresh();toast(enabled?'Mod ativado':'Mod desativado')}catch(e){toast(e.message,true)}finally{state.busy=false}}
 async function openFolder(id=''){try{await api('open-folder',{method:'POST',body:{id}})}catch(e){toast(e.message,true)}}
 async function saveAgentProfile(agent){const ids=enabledModsForAgent(agent).map(m=>m.id);try{await api('save-profile',{method:'POST',body:{name:agent,ids}});await refresh();toast('Perfil salvo para '+agent)}catch(e){toast(e.message,true)}}
@@ -685,6 +747,8 @@ document.addEventListener('click',async e=>{
   if(action){
     const a=action.dataset.action;
     if(a==='toggle') return toggleMod(action.dataset.id,!action.classList.contains('on'));
+    if(a==='choose-skin')return chooseSkin(action.dataset.agent,action.dataset.id);
+    if(a==='show-skins'){const agent=action.dataset.agent;expandedAgentSkins.has(agent)?expandedAgentSkins.delete(agent):expandedAgentSkins.add(agent);return render()}
     if(a==='select-agent') return openAgentPicker(action.dataset.id);
     if(a==='toggle-hotkeys'){const id=action.dataset.id;if(expandedModHotkeys.has(id))expandedModHotkeys.delete(id);else expandedModHotkeys.add(id);return renderLibraryResults();}
     if(a==='favorite') return toggleFavorite(action.dataset.agent);
@@ -699,6 +763,7 @@ document.addEventListener('click',async e=>{
     if(a==='apply-custom-profile') return applyProfile(action.dataset.name);
     if(a==='delete-custom-profile') return deleteProfile(action.dataset.name);
   }
+  if(e.target.matches('#randomWardrobeBtn')) return randomizeWardrobe();
   if(e.target.matches('#refreshBtn')) return refresh();
   if(e.target.matches('#checkUpdatesTop,#checkUpdatesBtn')) return checkUpdates();
   if(e.target.matches('#installUpdatesBtn')) return installUpdates();
