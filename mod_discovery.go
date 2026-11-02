@@ -77,6 +77,27 @@ func nestedModPartDisabled(modRoot, filePath string) bool {
     return false
 }
 
+// inheritedModSetting reads old per-component metadata after the scanner
+// consolidates body/face/weapon into one package. Explicit package values
+// always win. Conflicting child values are deliberately not guessed.
+func inheritedModSetting(values map[string]string, rootID string) string {
+    if value := values[rootID]; value != "" {
+        return value
+    }
+    prefix := rootID + "/"
+    found := ""
+    for id, value := range values {
+        if !strings.HasPrefix(id, prefix) || value == "" {
+            continue
+        }
+        if found != "" && found != value {
+            return "" // ambiguous old settings; let the user reclassify
+        }
+        found = value
+    }
+    return found
+}
+
 // findModForSavedProfile keeps presets made with older versions usable after
 // internal "resources"/"toggles" entries are consolidated into their package.
 // A saved child path maps to the parent only when that parent is now a real mod.
