@@ -20,7 +20,7 @@ import (
 )
 
 const (
-	appVersion       = "3.3.4"
+	appVersion       = "3.4.0"
 	githubRepository = "Gabriel-Liz2003/ZZZ-MANAGER"
 	updateAssetName  = "ZZZ-Mod-Desk.exe"
 	updateMaxSize    = 100 << 20 // 100 MiB
