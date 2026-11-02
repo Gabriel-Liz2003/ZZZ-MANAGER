@@ -1,6 +1,7 @@
 package main
 
 import (
+	"context"
 	"archive/zip"
 	"crypto/rand"
 	"crypto/sha256"
@@ -48,6 +49,8 @@ type Config struct {
 	OutfitTags map[string]string `json:"outfitTags"`
 	SelectedOutfits map[string]string `json:"selectedOutfits"`
 	OwnedOutfits map[string]bool `json:"ownedOutfits"`
+	HashDatabaseStatus string `json:"hashDatabaseStatus"`
+	HashDatabaseCount int `json:"hashDatabaseCount"`
 }
 type Mod struct {
 	ID                string `json:"id"`
@@ -62,6 +65,10 @@ type Mod struct {
 	Conflicts         int    `json:"conflicts"`
 	Hotkeys           []ModHotkey `json:"hotkeys"`
 	OutfitID string `json:"outfitId"`
+	OutfitSource string `json:"outfitSource"`
+	OutfitConfidence string `json:"outfitConfidence"`
+	OutfitEvidence int `json:"outfitEvidence"`
+	OutfitStatus string `json:"outfitStatus"`
 	PersistentVariables int `json:"persistentVariables"`
 	path              string
 	previewPath       string
@@ -100,6 +107,8 @@ type App struct {
 	configFile   string
 	token        string
 	previewCache map[string]string
+ hashCatalog *hashCatalog
+ hashStatus string
 }
 
 func main() {
@@ -123,7 +132,10 @@ func main() {
 	}
 	app := &App{configFile: filepath.Join(dataDir, "config.json"), token: base64.RawURLEncoding.EncodeToString(secret), previewCache: make(map[string]string)}
 	app.load()
-	ln, err := net.Listen("tcp", "127.0.0.1:0")
+ // A cached database works offline. Refresh in the background on launch;
+ // a manual Sync button is also available for immediately rerunning detection.
+ go app.syncCommunityHashDatabase(context.Background())
+ ln, err := net.Listen("tcp", "127.0.0.1:0")
 	if err != nil {
 		log.Fatal(err)
 	}
@@ -247,8 +259,16 @@ func (a *App) load() {
 	if a.config.OutfitTags==nil{a.config.OutfitTags=map[string]string{}}
 	if a.config.SelectedOutfits==nil{a.config.SelectedOutfits=map[string]string{}}
 	if a.config.OwnedOutfits==nil{a.config.OwnedOutfits=map[string]bool{}}
-	if a.config.ModDir == "" {
-		a.config.ModDir = autoDetect()
+	if a.hashCatalog==nil{
+        if db:=readCommunityHashDatabase(a.configFile);db!=nil{
+            a.hashCatalog=catalogFromDatabase(db)
+            a.hashStatus="Cache local disponível"
+        }else{
+            a.hashStatus="Base ainda não sincronizada"
+        }
+    }
+    if a.config.ModDir == "" {
+        a.config.ModDir = autoDetect()
 	}
 }
 func autoDetect() string {
@@ -495,7 +515,7 @@ func scanMods(root string, tags map[string]string) ([]*Mod, []Conflict, error) {
 	return mods, conflicts, nil
 }
 func (a *App) state() (State, error) {
-	result := State{ModDir: a.config.ModDir, Mods: []*Mod{}, Profiles: []Profile{}, Conflicts: []Conflict{}, Favorites: append([]string{}, a.config.Favorites...), CustomPhotos: []string{}, OfficialOutfits: specialOfficialOutfits,SelectedOutfits:a.config.SelectedOutfits,OwnedOutfits:a.config.OwnedOutfits}
+	result := State{ModDir: a.config.ModDir, Mods: []*Mod{}, Profiles: []Profile{}, Conflicts: []Conflict{}, Favorites: append([]string{}, a.config.Favorites...), CustomPhotos: []string{}, OfficialOutfits: resolvedOfficialOutfits(a.hashCatalog),HashDatabaseStatus:a.hashStatus,SelectedOutfits:a.config.SelectedOutfits,OwnedOutfits:a.config.OwnedOutfits}
 	for n := range a.config.PhotoFiles {
 		result.CustomPhotos = append(result.CustomPhotos, n)
 	}
@@ -514,7 +534,8 @@ func (a *App) state() (State, error) {
 		return result, err
 	}
 	result.Configured = true
-	for _,m:=range mods{m.OutfitID=normalizedOutfitTag(m,a.config.OutfitTags)}
+ if a.hashCatalog!=nil{result.HashDatabaseCount=a.hashCatalog.HashCount}
+ a.enrichMods(mods)
 	result.Mods = mods
 	result.Conflicts = conflicts
 	result.Installed = len(mods)
@@ -564,6 +585,18 @@ func (a *App) api(w http.ResponseWriter, r *http.Request) {
 	if a.config.OwnedOutfits==nil{a.config.OwnedOutfits=map[string]bool{}}
 	name := strings.TrimPrefix(r.URL.Path, "/api/")
 	switch name {
+	case "hash-database/sync":
+        if r.Method!="POST"{break}
+        // Network access must not hold the app mutex; allow the UI to keep
+        // serving its library even if the community endpoint is unavailable.
+        a.mu.Unlock()
+        ctx,cancel:=context.WithTimeout(r.Context(),14*time.Second)
+        err:=a.syncCommunityHashDatabase(ctx)
+        cancel()
+        a.mu.Lock()
+        if err!=nil{apiFail(w,502,err.Error());return}
+        jsonWrite(w,200,map[string]any{"message":"Base de hashes sincronizada. A biblioteca foi reclassificada.","hashes":a.hashCatalog.HashCount})
+        return
 	case "state":
 		if r.Method != "GET" {
 			break
@@ -627,7 +660,7 @@ func (a *App) api(w http.ResponseWriter, r *http.Request) {
 		if err:=decodeRequest(r,&req);err!=nil{apiFail(w,400,"Dados inválidos");return}
 		mods,_,err:=scanMods(a.config.ModDir,a.config.Tags);if err!=nil{apiFail(w,400,err.Error());return}
 		m:=findMod(mods,req.ID);if m==nil{apiFail(w,404,"Mod não encontrado");return}
-		if _,ok:=lookupOfficialCostume(m.Character,req.OutfitID);!ok{apiFail(w,400,"Traje não pertence ao agente do mod");return}
+		if req.OutfitID!="unknown"&&!a.hasOfficialOutfit(m.Character,req.OutfitID){apiFail(w,400,"Traje não pertence ao agente do mod");return}
 		a.config.OutfitTags[m.ID]=req.OutfitID
 		if err:=a.save();err!=nil{apiFail(w,500,err.Error());return}
 		jsonWrite(w,200,map[string]string{"message":"Compatibilidade de traje salva"})
@@ -636,7 +669,7 @@ func (a *App) api(w http.ResponseWriter, r *http.Request) {
 		if r.Method!="POST"{break}
 		var req struct{Agent string `json:"agent"`;OutfitID string `json:"outfitId"`;Owned bool `json:"owned"`}
 		if err:=decodeRequest(r,&req);err!=nil{apiFail(w,400,"Dados inválidos");return}
-		o,ok:=lookupOfficialCostume(req.Agent,req.OutfitID);if !ok||o.Base{apiFail(w,400,"Traje oficial inválido");return}
+		o,ok:=a.findOfficialOutfit(req.Agent,req.OutfitID);if !ok||o.Base{apiFail(w,400,"Traje oficial inválido");return}
 		a.config.OwnedOutfits[req.Agent+"/"+req.OutfitID]=req.Owned
 		if err:=a.save();err!=nil{apiFail(w,500,err.Error());return}
 		jsonWrite(w,200,map[string]string{"message":"Traje atualizado"})
@@ -646,8 +679,8 @@ func (a *App) api(w http.ResponseWriter, r *http.Request) {
 		var req struct{Agent string `json:"agent"`;OutfitID string `json:"outfitId"`;ModID string `json:"modId"`}
 		if err:=decodeRequest(r,&req);err!=nil{apiFail(w,400,"Dados inválidos");return}
 		mods,_,err:=scanMods(a.config.ModDir,a.config.Tags);if err!=nil{apiFail(w,400,err.Error());return}
-		for _,m:=range mods{m.OutfitID=normalizedOutfitTag(m,a.config.OutfitTags)}
-		changes,pick,err:=planOutfitSelection(mods,req.Agent,req.OutfitID,req.ModID)
+		a.enrichMods(mods)
+		changes,pick,err:=planOutfitSelectionWithExtras(mods,req.Agent,req.OutfitID,req.ModID,a.extraOutfits())
 		if err!=nil{apiFail(w,400,err.Error());return}
 		if err=applyWardrobeChanges(changes);err!=nil{apiFail(w,409,err.Error());return}
 		a.config.SelectedOutfits[pick.Agent]=pick.OutfitID
@@ -659,7 +692,7 @@ func (a *App) api(w http.ResponseWriter, r *http.Request) {
 		if r.Method!="POST"{break}
 		mods,_,err:=scanMods(a.config.ModDir,a.config.Tags);if err!=nil{apiFail(w,400,err.Error());return}
 		for _,m:=range mods{m.OutfitID=normalizedOutfitTag(m,a.config.OutfitTags)}
-		changes,picks,err:=planOfficialOutfitRandom(mods,a.config.OwnedOutfits,cryptoChoose)
+		changes,picks,err:=planOfficialOutfitRandomWithExtras(mods,a.config.OwnedOutfits,cryptoChoose,a.extraOutfits())
 		if err!=nil{apiFail(w,400,err.Error());return}
 		if err=applyWardrobeChanges(changes);err!=nil{apiFail(w,409,err.Error());return}
 		for _,p:=range picks{a.config.SelectedOutfits[p.Agent]=p.OutfitID}
@@ -718,7 +751,7 @@ func (a *App) api(w http.ResponseWriter, r *http.Request) {
 			return
 		}
 		if req.Enabled&&knownWardrobeAgent(m.Character){
-			a.config.SelectedOutfits[m.Character]=normalizedOutfitTag(m,a.config.OutfitTags)
+			a.config.SelectedOutfits[m.Character]=m.OutfitID
 			_ = a.save()
 		}
 		jsonWrite(w, 200, map[string]string{"message": "Estado atualizado"})
