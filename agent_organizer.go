@@ -226,6 +226,19 @@ func (a *App) applyAgentOrganization(plan agentOrganizePlan)(OrganizeResult,erro
   rollback()
   return summary,fmt.Errorf("Não foi possível salvar os novos caminhos: %w (movimentos revertidos)",err)
  }
+ // Remove empty *legacy grouping directories* left behind by moving
+ // their last independent mod. os.Remove only succeeds on empty directories;
+ // metadata/readmes and other mods are never deleted.
+ root,_:=filepath.Abs(a.config.ModDir)
+ for _,m:=range done{
+  p:=filepath.Dir(m.From)
+  for p!=root&&p!=filepath.Dir(p){
+   name:=filepath.Base(p)
+   if knownWardrobeAgent(name){break}
+   if err:=os.Remove(p);err!=nil{break}
+   p=filepath.Dir(p)
+  }
+ }
  for _,dir:=range madeDirs{summary.Created=append(summary.Created,filepath.Base(dir))}
  return summary,nil
 }
