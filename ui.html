@@ -577,7 +577,13 @@ function officialCostumes(agent){
  return [{agent,id:'base',name:agent==='Astra'?'Scarlet Rock':'Traje padrão',base:true,image:''},
   ...(Array.isArray(state.officialOutfits)?state.officialOutfits:[]).filter(x=>x.agent===agent)];
 }
+function outfitPhotoKey(agent,id){return 'outfit:'+agent+':'+id}
 function officialArt(agent,costume){
+ const key=outfitPhotoKey(agent,costume.id);
+ if(customImageNames.has(key)){
+   const url='/api/agent-photo?name='+encodeURIComponent(key)+'&token='+encodeURIComponent(TOKEN)+'&v='+photoVersion;
+   return `<img loading="lazy" src="${esc(url)}" data-fallback="${esc(portraitURL(agent)||portraitData(agent))}" alt="${esc(costume.name)}">`;
+ }
  const fallback=portraitURL(agent)||portraitData(agent);
  if(costume.base)return portraitTag(agent);
  return `<img loading="lazy" src="${esc(costume.image||fallback)}" data-fallback="${esc(fallback)}" alt="${esc(costume.name)}">`;
@@ -593,6 +599,8 @@ function costumeCard(agent,costume){
  ${current===costume.id?'<small style="color:#c6ff48">● Selecionado no gerenciador</small>':''}
  ${costume.base?'':`<label class="official-own"><input type="checkbox" data-own-costume="1" data-agent="${esc(agent)}" data-outfit="${esc(costume.id)}" ${owned?'checked':''}> Possuo no jogo</label>`}
  <button class="official-use" data-action="official-select" data-agent="${esc(agent)}" data-outfit="${esc(costume.id)}" data-id="" ${owned?'':'disabled'}>Sem mod</button>
+ <button class="btn small ghost" data-action="pick-outfit-photo" data-agent="${esc(agent)}" data-outfit="${esc(costume.id)}" title="Substituir a imagem do traje">🖼 Arte</button>
+ ${customImageNames.has(outfitPhotoKey(agent,costume.id))?`<button class="btn small ghost" data-action="delete-outfit-photo" data-agent="${esc(agent)}" data-outfit="${esc(costume.id)}">Restaurar</button>`:''}
  </div></div>
  <div class="official-mods">
  ${mods.length?mods.map(m=>`<div class="official-mod">
@@ -792,6 +800,8 @@ document.addEventListener('click',async e=>{
     const a=action.dataset.action;
     if(a==='toggle') return toggleMod(action.dataset.id,!action.classList.contains('on'));
     if(a==='official-select')return chooseOfficialCostume(action.dataset.agent,action.dataset.outfit,action.dataset.id);
+    if(a==='pick-outfit-photo'){state.photoFor=outfitPhotoKey(action.dataset.agent,action.dataset.outfit);return $('#photoFile').click()}
+    if(a==='delete-outfit-photo')return removeCustomPhoto(outfitPhotoKey(action.dataset.agent,action.dataset.outfit));
     if(a==='save-appearance')return saveAppearance(action.dataset.id);
     if(a==='show-skins'){const agent=action.dataset.agent;expandedAgentSkins.has(agent)?expandedAgentSkins.delete(agent):expandedAgentSkins.add(agent);return render()}
     if(a==='select-agent') return openAgentPicker(action.dataset.id);
