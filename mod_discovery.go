@@ -40,9 +40,6 @@ func packageSupportFolder(name string) bool {
 // Do not consolidate an agent's collection of unrelated outfits.
 func looksLikeSingleModPackage(parent string, entries []os.DirEntry) bool {
     name := strings.ToLower(prettyName(filepath.Base(parent)))
-    if knownWardrobeAgent(prettyName(filepath.Base(parent))) {
-        return false
-    }
     componentParts, supportDirs, otherDirs := 0, 0, 0
     hasPackagePreview := false
     for _, item := range entries {
@@ -75,6 +72,12 @@ func looksLikeSingleModPackage(parent string, entries []os.DirEntry) bool {
     // one mod even without a preview at the package root.
     if otherDirs == 0 && (componentParts >= 2 || supportDirs >= 1) {
         return true
+    }
+    // A top-level agent folder may itself contain a component-only package
+    // (Remielle/body + face + weapon). It is safe to group pure component
+    // layouts, but never merge a real agent's mixed outfit collection.
+    if knownWardrobeAgent(prettyName(filepath.Base(parent))) {
+        return false
     }
     // Named skin directories + ancillary hair/body parts need additional
     // evidence so we don't accidentally merge several unrelated outfits.
