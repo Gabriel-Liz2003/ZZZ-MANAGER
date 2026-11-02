@@ -2,7 +2,6 @@ package main
 
 import (
 	"bufio"
-	"bytes"
 	"errors"
 	"fmt"
 	"io/fs"
@@ -268,6 +267,18 @@ func (w *appearanceWatcher) next(root string, sig runtimeFileSignature) bool {
 	return true
 }
 
+// Select by exact mod namespace, not by the text parser's detection count.
+// Some mods use UTF-16 INIs and do not show up in the older quick counter.
+func hasRuntimeKeysForMod(values map[string]string, modRelativePath string) bool {
+	prefix := strings.ToLower(filepath.ToSlash(modRelativePath)) + "/"
+	for key := range values {
+		if strings.HasPrefix(key, prefix) {
+			return true
+		}
+	}
+	return false
+}
+
 func (a *App) watchAppearancePresets(interval time.Duration) {
 	if interval <= 0 {
 		interval = 3 * time.Second
@@ -304,7 +315,7 @@ func (a *App) watchAppearancePresets(interval time.Duration) {
 		}
 		updated, failed := 0, 0
 		for _, mod := range mods {
-			if !mod.Enabled || mod.PersistentVariables == 0 && countPersistInModDir(mod.path) == 0 {
+			if !mod.Enabled || !hasRuntimeKeysForMod(values, mod.RelPath) {
 				continue
 			}
 			_, changes, syncErr := syncModPersistentDefaultsWithValues(root, mod, values)
@@ -330,4 +341,3 @@ func (a *App) watchAppearancePresets(interval time.Duration) {
 	}
 }
 
-var _ = bytes.Compare
