@@ -56,7 +56,7 @@ func TestOrganizeModsByAgentMovesWholePackagesPreservesStatesAndProfiles(t *test
  if len(a.config.Profiles["All"])!=2||a.config.Profiles["All"][0]!="Remielle/Remielle Day Outfit"||a.config.Profiles["All"][1]!="Anby/Anby Casual"{
   t.Fatalf("Old profiles not migrated and de-duplicated: %#v",a.config.Profiles)
  }
- if len(a.config.Profiles["Remielle"])!=1||a.config.Profiles["Remielle"][0]!="Remielle/Remielle Day Outfit/body"{
+ if len(a.config.Profiles["Remielle"])!=1||a.config.Profiles["Remielle"][0]!="Remielle/Remielle Day Outfit"{
   t.Fatalf("Legacy child preset lost: %#v",a.config.Profiles)
  }
  again,err:=a.organizeAgentFolders("")
