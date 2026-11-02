@@ -35,11 +35,11 @@ const cardContext={
   expandedOfficialModLists:new Set(),
   officialModSearchQueries:new Map(),
   officialModPreviewLimit:3,
-  outfitListKey:(a,b)=>a+"\\u001f"+b,
-  normalizeModSearch:v=>String(v||"").normalize("NFD").replace(/[\\u0300-\\u036f]/g,"").toLowerCase()
+  outfitListKey:(a,b)=>a+"\u001f"+b,
+  normalizeModSearch:v=>String(v||"").normalize("NFD").replace(/[\u0300-\u036f]/g,"").toLowerCase()
 };
 const ctx=vm.createContext(cardContext);
-vm.runInContext(cardSource+"\\nfunction renderFixture(){return costumeCard('Remielle',{id:'base',base:true,name:'Traje padrão'});}",ctx);
+vm.runInContext(cardSource+"\nfunction renderFixture(){return costumeCard('Remielle',{id:'base',base:true,name:'Traje padrão'});}",ctx);
 let htmlCollapsed=vm.runInContext("renderFixture()",ctx);
 const countMods=src=>(src.match(/<div class="official-mod" role="listitem"/g)||[]).length;
 assert.equal(countMods(htmlCollapsed),3,"More than 3 mods rendered in collapsed outfit");
