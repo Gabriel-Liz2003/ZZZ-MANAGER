@@ -74,7 +74,7 @@ assert.equal(vm.runInContext("shortcutFromKeyboard",keyboardCtx)(keyEvent("Numpa
 assert.equal(vm.runInContext("shortcutFromKeyboard",keyboardCtx)(keyEvent("KeyL","L",{ctrlKey:true,shiftKey:true})),"ctrl shift l");
 assert.equal(vm.runInContext("shortcutFromKeyboard",keyboardCtx)(keyEvent("ShiftLeft","Shift")),null);
 
-for(const feature of ["id='discordAgent'", "id='discordFileURL'", "function discordCatalogPage()", "function addDiscordCatalogMod()", "api('discord/install'", "data-action='discord-install'", "id:'discord'"]){
-  assert.ok(html.includes(feature),'Missing Discord catalog UI feature: '+feature);
-}
-console.log("UI JavaScript, editable hotkeys, official outfits mod grouping and Discord catalog OK");
+assert.ok(!html.includes('id="page-discord"')&&!html.includes('function discordCatalogPage()'),"Discord catalog should be removed");
+assert.ok(!html.includes('data-action="save-appearance"')&&!html.includes('function saveAppearance(id)'),"Manual appearance save UI should be removed");
+assert.ok(html.includes("appearanceSync")&&html.includes("Presets automáticos"),"Automatic preset status missing");
+console.log("UI JavaScript, editable hotkeys, official outfits and mod grouping OK");

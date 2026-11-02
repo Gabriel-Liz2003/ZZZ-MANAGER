@@ -1,12 +1,13 @@
-# NEON/MODS — ZZZ Mod Desk v3.8.0
+# NEON/MODS — ZZZ Mod Desk v3.8.1
 
-## v3.8.0 — Catálogo Discord (links importados manualmente)
+## v3.8.1 — Presets de aparência automáticos e sem Discord
 
-A nova aba **Catálogo Discord** permite cadastrar links diretos de arquivos ZIP, RAR ou 7z publicados como anexos em um servidor do Discord, com nome, agente, link da mensagem e imagem de prévia opcionais. Após adicionar um item, use **Instalar** para baixar o pacote e organizá-lo automaticamente na pasta da agente pelo instalador existente. O app preserva mods antigos, bloqueia executáveis e protege contra caminhos maliciosos.
+O **Catálogo Discord** foi removido por completo: sem aba, links, downloads por CDN ou integrações com contas. Os outros recursos de instalação permanecem.
 
-**Como usar:** abra a publicação da agente no Discord, clique com o botão direito no *arquivo de download* e escolha **Copiar link**. Cole o endereço `https://cdn.discordapp.com/attachments/.../mod.zip?...` no catálogo. O link da mensagem `https://discord.com/channels/...` serve somente para voltar à publicação e **não** fornece acesso direto ao arquivo. Links de anexos podem expirar; nesses casos, clique em **Novo link**.
+**Presets de variações automáticos:** mantenha o ZZZ Mod Desk aberto durante o jogo, escolha as opções da skin e pressione **F10** para o ZZMI registrar as variáveis em `d3dx_user.ini`. O aplicativo observa alterações estáveis desse arquivo (sem usar teclado global), sincroniza automaticamente valores `global persist` compatíveis com os respectivos arquivos `.ini` dos mods ativos e mantém um backup do original `.zzzmanager.bak`. O antigo botão **Salvar variação atual** foi removido. No topo da biblioteca é exibido o último status do salvamento automático.
 
-**Limite desta versão:** o app **não** pesquisa automaticamente fóruns, não lê canais privados e não usa token de usuário ou self-bot. Sem autorização para um bot oficial no servidor, cada link precisa ser adicionado pelo usuário. Itens salvos ficam no computador; a contagem de importações é histórica, não uma verificação da existência do arquivo.
+Ao iniciar, o monitor **não reexecuta dados antigos** do `d3dx_user.ini` para evitar sobrescrever alterações de outros dias. Salva apenas depois de uma nova alteração registrada pelo ZZMI com o app aberto. A sincronização suporta `.ini` UTF-8 e UTF-16, preserva comentários e atalhos e ignora pastas desativadas; mods que não usam `global persist` não podem ter suas variações registradas desse modo.
+
 
 
 ## v3.7.2 — Correção de mods divididos entre skin e cabelo
