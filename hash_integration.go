@@ -46,7 +46,7 @@ func (a *App) enrichMods(mods []*Mod){
   m.OutfitConfidence=det.Confidence
   m.OutfitEvidence=det.Evidence
   m.OutfitStatus=det.Status
-  explicitAgent:=a.config.Tags[m.ID]
+  explicitAgent:=inheritedModSetting(a.config.Tags,m.ID)
   if det.Agent!=""{
    if explicitAgent==""{m.Character=det.Agent
    }else if !strings.EqualFold(explicitAgent,det.Agent){
@@ -54,7 +54,7 @@ func (a *App) enrichMods(mods []*Mod){
     det.OutfitID="unknown"
    }
   }
-  if manual,ok:=a.config.OutfitTags[m.ID];ok{
+  if manual:=inheritedModSetting(a.config.OutfitTags,m.ID);manual!=""{
    if manual=="unknown" || a.hasOfficialOutfit(m.Character,manual){
     m.OutfitID=manual
     m.OutfitSource="manual"
