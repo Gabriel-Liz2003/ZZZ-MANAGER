@@ -11,6 +11,8 @@ A aba **Agentes** não confunde mais o visual original com um mod. Cada agente a
 - Marque **Possuo no jogo** nas roupas alternativas que realmente estão desbloqueadas na sua conta. O gerenciador não acessa a conta da HoYoverse para descobrir isso.
 - O botão **Sortear trajes** sorteia entre as roupas possuídas (e o padrão) que tenham mods instalados e sorteia **exatamente um mod** compatível por agente com mod ativo. Agentes sem mod ativo não são alterados.
 - **Limitação técnica importante:** selecionar uma roupa oficial no ZZZ Manager não equipa nem compra essa roupa no ZZZ. O usuário deve equipá-la no menu Trajes do jogo. O gerenciador troca apenas os mods da pasta ZZMI; depois pressione **F10** no jogo para recarregá-los.
+- O catálogo já inclui os trajes das atualizações **3.1** (Remielle, Sigrid e Lucy), **3.2** (Nangong, Aria e Sunna) e **3.3** (Phoenix e Severian), além de roupas oficiais anteriores verificadas.
+- Para um traje cujo retrato de catálogo não carregue, clique em **🖼 Arte** e selecione uma imagem local PNG, JPG ou WEBP. Essa imagem será guardada no diretório de configuração do app e terá prioridade sobre qualquer CDN; **Restaurar** devolve a arte anterior. A miniatura da Chandelier enviada neste projeto já vem incluída.
 - Os mods e presets atuais são preservados. Os vínculos de roupas oficiais, marcações de propriedade e a roupa escolhida ficam em `config.json`.
 
 ## v3.4.1 — Galeria de skins, sorteio e variações persistentes
