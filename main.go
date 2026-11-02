@@ -97,6 +97,7 @@ type State struct {
 	OwnedOutfits map[string]bool `json:"ownedOutfits"`
 	HashDatabaseStatus string `json:"hashDatabaseStatus"`
 	HashDatabaseCount int `json:"hashDatabaseCount"`
+	AppearanceSync AppearanceAutoStatus `json:"appearanceSync"`
 }
 type APIError struct {
 	Error string `json:"error"`
@@ -109,6 +110,7 @@ type App struct {
 	previewCache map[string]string
  hashCatalog *hashCatalog
  hashStatus string
+	appearanceSync AppearanceAutoStatus
 }
 
 func main() {
@@ -132,6 +134,7 @@ func main() {
 	}
 	app := &App{configFile: filepath.Join(dataDir, "config.json"), token: base64.RawURLEncoding.EncodeToString(secret), previewCache: make(map[string]string)}
 	app.load()
+	go app.watchAppearancePresets(3*time.Second)
  // A cached database works offline. Refresh in the background on launch;
  // a manual Sync button is also available for immediately rerunning detection.
  go app.syncCommunityHashDatabase(context.Background())
@@ -521,7 +524,7 @@ func scanMods(root string, tags map[string]string) ([]*Mod, []Conflict, error) {
 	return mods, conflicts, nil
 }
 func (a *App) state() (State, error) {
-	result := State{ModDir: a.config.ModDir, Mods: []*Mod{}, Profiles: []Profile{}, Conflicts: []Conflict{}, Favorites: append([]string{}, a.config.Favorites...), CustomPhotos: []string{}, OfficialOutfits: resolvedOfficialOutfits(a.hashCatalog),HashDatabaseStatus:a.hashStatus,SelectedOutfits:a.config.SelectedOutfits,OwnedOutfits:a.config.OwnedOutfits}
+	result := State{ModDir: a.config.ModDir, Mods: []*Mod{}, Profiles: []Profile{}, Conflicts: []Conflict{}, Favorites: append([]string{}, a.config.Favorites...), CustomPhotos: []string{}, OfficialOutfits: resolvedOfficialOutfits(a.hashCatalog),HashDatabaseStatus:a.hashStatus,SelectedOutfits:a.config.SelectedOutfits,OwnedOutfits:a.config.OwnedOutfits, AppearanceSync:a.appearanceSync}
 	for n := range a.config.PhotoFiles {
 		result.CustomPhotos = append(result.CustomPhotos, n)
 	}
