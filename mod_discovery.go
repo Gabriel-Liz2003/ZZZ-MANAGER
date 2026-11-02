@@ -7,62 +7,81 @@ import (
     "strings"
 )
 
-// looksLikeSingleModPackage recognizes imported mod archives that have one or
-// more internal folders (e.g. RoxyOveralls/RoxyOveralls/toggles and resources).
-// Only a directory with package-layout evidence is grouped. Generic character
-// collection directories remain traversable and retain independent mods.
+// componentFolderName recognizes common body-part subfolders shipped as
+// independent .ini files within ONE outfit, including numbered alternatives.
+// Avoid general numeric-stripping on outfit names: only known component bases
+// qualify, so 'School Outfit 2' remains a separate mod.
+func componentFolderName(name string) bool {
+    name = strings.ToLower(strings.TrimSpace(prettyName(name)))
+    base := strings.TrimRight(name, "0123456789")
+    base = strings.TrimRight(base, " _-")
+    switch base {
+    case "body", "face", "hair", "head", "weapon", "wuqi", "tex",
+        "eyes", "arms", "legs", "shoes", "tail", "clothes",
+        "cloth", "accessory", "accessories":
+        return true
+    }
+    return false
+}
+
+func packageSupportFolder(name string) bool {
+    base := strings.ToLower(strings.TrimSpace(prettyName(name)))
+    switch base {
+    case "toggles", "resources", "textures", "meshes":
+        return true
+    }
+    return false
+}
+
+// looksLikeSingleModPackage identifies multipart outfits whose .ini files
+// live in component subfolders, e.g.
+// Mods/Ye Shunguang/YeShunguang-Purple Red Demon Spirit v2.0/
+//     body/, face/, hair/, hair2/, tex/, wuqi/, wuqi2/.
+// Do not consolidate an agent's collection of unrelated outfits.
 func looksLikeSingleModPackage(parent string, entries []os.DirEntry) bool {
     name := strings.ToLower(prettyName(filepath.Base(parent)))
-    // Some modders split a single character replacement into component
-    // directories containing independent INIs. These must be toggled together.
-    // Do not mistake a character's collection of several outfits for one mod.
-    componentParts := 0
-    otherDirs := 0
+    componentParts, supportDirs, otherDirs := 0, 0, 0
     hasPackagePreview := false
     for _, item := range entries {
         if !item.IsDir() {
-            // A preview at the wrapper level is evidence of a packaged outfit
-            // rather than an agent's folder of unrelated outfits. Never count
-            // images within its children or symlinked entries as that evidence.
-            if item.Type()&os.ModeSymlink == 0 {
-                lower := strings.ToLower(item.Name())
-                ext := filepath.Ext(lower)
-                base := strings.TrimSuffix(lower, ext)
-                if ext == ".png" || ext == ".jpg" || ext == ".jpeg" || ext == ".webp" {
-                    switch base {
-                    case "preview", "preview_image", "previewimage", "thumbnail", "thumb", "cover":
-                        hasPackagePreview = true
-                    }
+            if item.Type()&os.ModeSymlink != 0 { continue }
+            filename := strings.ToLower(item.Name())
+            ext := filepath.Ext(filename)
+            base := strings.TrimSuffix(filename, ext)
+            if ext == ".png" || ext == ".jpg" || ext == ".jpeg" || ext == ".webp" {
+                switch base {
+                case "preview", "preview_image", "previewimage", "thumbnail", "thumb", "cover":
+                    hasPackagePreview = true
                 }
             }
             continue
         }
         child := strings.ToLower(prettyName(item.Name()))
         if child == name {
-            return true // common duplicate wrapper from ZIP/RAR
+            return true // duplicated archive wrapper, e.g. RoxyOveralls/RoxyOveralls
         }
-        switch child {
-        case "toggles", "resources", "textures", "meshes":
-            // An explicit support directory indicates a packaged mod. A
-            // package with only "resources" still follows the old behavior.
-            return true
-        case "body", "face", "weapon", "hair", "head", "accessories":
+        if componentFolderName(child) {
             componentParts++
-        default:
+        } else if packageSupportFolder(child) {
+            supportDirs++
+        } else {
             otherDirs++
         }
     }
-    // Example: Mods/Soldier 0-Anby-yyzj-/{body,face,weapon}/*.ini.
-    if componentParts >= 2 && otherDirs == 0 {
+    // Pure collections of conventional body/face/weapon/etc. subfolders are
+    // one mod even without a preview at the package root.
+    if otherDirs == 0 && (componentParts >= 2 || supportDirs >= 1) {
         return true
     }
-    // Some authors mix a named skin folder with a separate component:
-    // Mods/Alice/<outfit>/aliceskin/*.ini and hair/*.ini. The outfit-level
-    // preview identifies the common wrapper. The known agent directory itself
-    // must NEVER be consolidated as it can contain many separate outfits.
-    return !knownWardrobeAgent(prettyName(filepath.Base(parent))) &&
-        hasPackagePreview && componentParts >= 1 && otherDirs >= 1
-
+    // A top-level agent folder may itself contain a component-only package
+    // (Remielle/body + face + weapon). It is safe to group pure component
+    // layouts, but never merge a real agent's mixed outfit collection.
+    if knownWardrobeAgent(prettyName(filepath.Base(parent))) {
+        return false
+    }
+    // Named skin directories + ancillary hair/body parts need additional
+    // evidence so we don't accidentally merge several unrelated outfits.
+    return hasPackagePreview && (componentParts+supportDirs) >= 1 && otherDirs >= 1
 }
 
 // anyModINI is used only for directories with evidence of a package layout;
