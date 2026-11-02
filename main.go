@@ -559,6 +559,9 @@ func (a *App) api(w http.ResponseWriter, r *http.Request) {
 	}
 	a.mu.Lock()
 	defer a.mu.Unlock()
+	if a.config.OutfitTags==nil{a.config.OutfitTags=map[string]string{}}
+	if a.config.SelectedOutfits==nil{a.config.SelectedOutfits=map[string]string{}}
+	if a.config.OwnedOutfits==nil{a.config.OwnedOutfits=map[string]bool{}}
 	name := strings.TrimPrefix(r.URL.Path, "/api/")
 	switch name {
 	case "state":
