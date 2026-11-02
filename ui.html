@@ -198,6 +198,10 @@ button:focus-visible,input:focus-visible,select:focus-visible{outline:2px solid 
 .mod-keybind-warning{color:#f2cb7c;font-size:11px;font-weight:800;line-height:1.45;margin-top:4px}
 .keycaps{display:flex;gap:4px;align-items:center;flex-wrap:wrap;justify-content:flex-end;min-width:70px;max-width:55%}
 .keycap{display:inline-block;font-size:11px;font-weight:900;letter-spacing:.025em;border-radius:7px;padding:4px 7px;color:#ecf9ca;background:#2c3540;border:1px solid #57646b;box-shadow:0 2px 0 #111820;white-space:normal;overflow-wrap:anywhere}
+.keycap-edit{cursor:pointer;font-family:inherit;transition:border-color .12s,background .12s;max-width:100%;text-align:center}
+.keycap-edit:hover,.keycap-edit:focus-visible{background:#35473d;border-color:#c6ff48;outline:2px solid rgba(198,255,72,.22);outline-offset:2px}
+.keycap-edit.recording{background:#405129;border-color:#c6ff48;color:#fff;animation:record-pulse 1s ease-in-out infinite}
+@keyframes record-pulse{50%{box-shadow:0 0 0 3px rgba(198,255,72,.2)}}
 .mod-keybind-empty{font-size:11px;color:#99a9be;margin-top:9px}
 .mod-keybind-more{width:100%;margin-top:9px;background:rgba(255,255,255,.04);border:1px solid rgba(255,255,255,.08);border-radius:10px;color:#ccdbec;padding:7px 10px;font-size:12px;font-weight:800}
 select option{background:#172032;color:#edf3ff;}
@@ -457,6 +461,7 @@ const state={page:'overview',configured:false,modDir:'',mods:[],profiles:[],conf
 let customImageNames=new Set();let photoVersion=0;
 let pickerModID=null, pickerCurrentAgent='';
 const expandedModHotkeys=new Set();
+let hotkeyCapture=null;
 const expandedAgentSkins=new Set();
 const expandedOfficialModLists=new Set();
 const officialModSearchQueries=new Map();
@@ -529,12 +534,15 @@ function formatHotkey(raw){
 function bindingMode(mode){
   return ({cycle:'Trocar variação',toggle:'Ativar/desativar',hold:'Enquanto segurar',activate:'Executar ação'})[String(mode||'').toLowerCase()]||'Atalho no jogo';
 }
-function hotkeyEntry(h){
+function hotkeyButton(m,h,field,key,index){
+  return `<button type="button" class="keycap keycap-edit" data-action="edit-hotkey" data-id="${esc(m.id)}" data-file="${esc(h.file)}" data-section="${esc(h.section)}" data-occurrence="${h.occurrence||0}" data-field="${field}" data-index="${index}" data-previous="${esc(key)}" title="Clique e pressione a nova tecla (Esc para cancelar)" aria-label="Alterar ${field==='back'?'atalho de retorno':'atalho'} de ${esc(h.label||h.section)}: ${esc(formatHotkey(key))}">${esc(formatHotkey(key))}</button>`;
+}
+function hotkeyEntry(m,h){
   const keys=Array.isArray(h.keys)?h.keys:[];
   const back=Array.isArray(h.back)?h.back:[];
   return `<div class="mod-keybind-item">
     <div style="min-width:0;flex:1"><div class="desc"><b>${esc(h.label||h.section||'Comando')}</b></div><div class="meta-text">${esc(bindingMode(h.mode))}${h.file?' · '+esc(h.file):''}</div>${h.disabled?'<div class="mod-keybind-warning">⚠ Pasta desativada — atalho apenas para referência</div>':''}${h.condition?`<div class="meta-text" title="${esc(h.condition)}">Condição: ${esc(h.condition)}</div>`:''}</div>
-    <div class="keycaps">${keys.map(k=>`<kbd class="keycap">${esc(formatHotkey(k))}</kbd>`).join('')}${back.length?`<div style="width:100%;font-size:10px;color:#aeb8cb;text-align:right">Voltar</div>${back.map(k=>`<kbd class="keycap">${esc(formatHotkey(k))}</kbd>`).join('')}`:''}</div>
+    <div class="keycaps">${keys.map((k,i)=>hotkeyButton(m,h,'key',k,i)).join('')}${back.length?`<div style="width:100%;font-size:10px;color:#aeb8cb;text-align:right">Voltar</div>${back.map((k,i)=>hotkeyButton(m,h,'back',k,i)).join('')}`:''}</div>
   </div>`;
 }
 function modHotkeysPanel(m){
@@ -543,9 +551,9 @@ function modHotkeysPanel(m){
   const expanded=expandedModHotkeys.has(m.id);
   const shown=expanded?all:all.slice(0,2);
   return `<div class="mod-keybinds"><div class="mod-keybind-title">⌨ Comandos no jogo <span class="mini">${all.length} detectado${all.length===1?'':'s'}</span></div>
-    <div class="mod-keybind-list">${shown.map(hotkeyEntry).join('')}</div>
+    <div class="mod-keybind-list">${shown.map(h=>hotkeyEntry(m,h)).join('')}</div>
     ${all.length>2?`<button class="mod-keybind-more" data-action="toggle-hotkeys" data-id="${esc(m.id)}">${expanded?'Mostrar menos':'Mostrar todos os '+all.length+' atalhos'}</button>`:''}
-    <div class="mod-keybind-empty">Leitura informativa dos .ini, inclusive versões desativadas. Atalhos em pastas DISABLED_ não funcionam enquanto a pasta estiver desativada.</div>
+    <div class="mod-keybind-empty">Clique na tecla para redefinir o comando do .ini. Pressione Esc para cancelar. Em pastas DISABLED_, o novo atalho só funciona após ativar o mod.</div>
   </div>`;
 }
 function modCard(m){return `<div class="card modcard">
