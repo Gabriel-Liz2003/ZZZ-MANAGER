@@ -593,6 +593,26 @@ func (a *App) api(w http.ResponseWriter, r *http.Request) {
 		}
 		jsonWrite(w, 200, map[string]string{"path": p})
 		return
+	case "wardrobe/select":
+		if r.Method != "POST" { break }
+		var req struct { Agent string `json:"agent"`; ModID string `json:"modId"` }
+		if err:=decodeRequest(r,&req);err!=nil {apiFail(w,400,"Seleção inválida");return}
+		mods,_,err:=scanMods(a.config.ModDir,a.config.Tags)
+		if err!=nil {apiFail(w,400,err.Error());return}
+		changes,choice,err:=selectWardrobe(mods,req.Agent,req.ModID)
+		if err!=nil{apiFail(w,400,err.Error());return}
+		if err=applyWardrobeChanges(changes);err!=nil{apiFail(w,409,err.Error());return}
+		jsonWrite(w,200,map[string]any{"message":"Aparência selecionada para "+choice.Agent+": "+choice.Name+" (pressione F10 dentro do jogo)","choices":[]WardrobeChoice{choice}})
+		return
+	case "wardrobe/random":
+		if r.Method != "POST" { break }
+		mods,_,err:=scanMods(a.config.ModDir,a.config.Tags)
+		if err!=nil{apiFail(w,400,err.Error());return}
+		changes,choices,err:=planRandomWardrobe(mods,cryptoChoose)
+		if err!=nil{apiFail(w,400,err.Error());return}
+		if err=applyWardrobeChanges(changes);err!=nil{apiFail(w,409,err.Error());return}
+		jsonWrite(w,200,map[string]any{"message":fmt.Sprintf("%d agente(s) sorteado(s). Pressione F10 dentro do ZZZ para aplicar.",len(choices)),"choices":choices})
+		return
 	case "toggle":
 		if r.Method != "POST" {
 			break
