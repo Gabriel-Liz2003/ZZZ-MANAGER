@@ -1,6 +1,35 @@
-# NEON/MODS — ZZZ Mod Desk v3.6.2
+# NEON/MODS — ZZZ Mod Desk v3.7.0
 
 Gerenciador de mods do Zenless Zone Zero para Windows, com suporte à pasta `Mods` do ZZMI / XXMI.
+
+## v3.7.0 — Pastas organizadas por agente
+
+A aba **Configurações** possui o botão **📁 Organizar biblioteca por agente**. Ele mostra quantos mods serão movidos e exige confirmação antes de reorganizar arquivos existentes. O resultado esperado fica assim:
+
+```text
+Mods/
+  Remielle/
+    Remielle School Uniform/
+      body/
+      face/
+    DISABLED_Remielle Evening/
+      config.ini
+  Anby/
+    Soldier 0-Anby-yyzj-/
+      body/
+      face/
+      weapon/
+  Unknown Mod/   (não identificado: permanece onde estava)
+```
+
+- **Pacote completo:** move a pasta principal de cada mod, nunca uma subpasta `body`, `face`, `weapon` ou `resources` isoladamente.
+- **Estado preservado:** mods desativados continuam com prefixo `DISABLED_`. Pacotes sob uma pasta superior desativada não são movidos, evitando ativá-los acidentalmente.
+- **Perfis e classificações migrados:** atualiza IDs em perfis e categorias, inclusive referências antigas para componentes internos de um pacote; caminhos duplicados em um perfil são consolidados.
+- **Sem substituições:** conflitos de nome recebem sufixos como ` (2)`. Se um diretório de agente já contiver um pacote completo com o próprio nome do agente, a operação não insere arquivos dentro dele.
+- **Novas importações:** ZIP, RAR, 7z e pastas importadas pelo aplicativo são encaminhados para a pasta do agente automaticamente quando identificáveis. Classificar manualmente um mod também tenta movê-lo.
+- **Mod desconhecido:** permanece onde está até a classificação ficar disponível. A reorganização pode ser repetida sem criar duplicatas.
+- **Segurança:** salva backup do `config.json` antes de mover a biblioteca e tenta reverter todas as renomeações se ocorrer erro. Pastas antigas só são removidas se estiverem completamente vazias; conteúdos não relacionados são preservados.
+- **Importante:** feche o ZZZ antes de organizar a biblioteca existente. A movimentação altera os caminhos dos mods, o que pode exigir `F10` no jogo e novo salvamento de variações persistentes. Mods que dependem de arquivos externos por caminhos relativos podem exigir revisão após a mudança.
 
 ## v3.6.2 — Pacotes com componentes body / face / weapon
 
