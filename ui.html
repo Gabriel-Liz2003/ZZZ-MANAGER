@@ -572,10 +572,9 @@ function modCard(m){return `<div class="card modcard">
     </div>
     <div class="meta"><span class="mini">${m.iniCount} ini</span><span class="mini">Atualizado ${esc(m.lastModified||'—')}</span><span class="mini">${m.preview?'Com preview':'Sem preview'}</span></div>
     <div class="mod-keybind-empty" style="margin-top:9px;color:${m.persistentVariables>0?'#c9f39d':'#efc684'}">${m.persistentVariables>0?
-       '✓ '+m.persistentVariables+' variável(is) persistente(s) declarada(s). Pressione F10 no jogo antes de trocar de skin; o retorno ao mesmo preset ainda depende do ZZMI.':
+       '✓ '+m.persistentVariables+' variável(is) persistente(s). Salvamento automático quando o ZZMI registrar o F10.':
        '⚠ Nenhuma variável persistente declarada nos INIs ativos. Acessórios alternados por teclado podem voltar ao padrão ao recarregar.'}</div>
     ${modHotkeysPanel(m)}
-    ${m.enabled&&m.persistentVariables>0?`<button class="btn small" style="width:100%;margin-top:10px;border-color:#6f8952" data-action="save-appearance" data-id="${esc(m.id)}">💾 Salvar variação atual (após F10)</button>`:''}
     <div class="cardactions">
       <button class="switch ${m.enabled?'on':''}" data-action="toggle" data-id="${esc(m.id)}" aria-label="${m.enabled?'Desativar':'Ativar'} mod"><span class="knob"></span></button>
       <span class="switchlabel">${m.enabled?'Ligado':'Desligado'}</span>
@@ -605,6 +604,7 @@ function renderPickerResults(){
 }
 function libraryPage(){const mods=filteredMods();return `
 <div class="sectionhead"><div><h3>Biblioteca</h3><p>Filtre por nome, agente ou status para achar o mod mais rápido.</p></div><div class="toolbar"><button class="btn small" id="clearFilters">Limpar filtros</button></div></div>
+<p class="wardrobe-note" id="appearanceAutoState">💾 <b>Presets automáticos:</b> ${esc(state.appearanceSync?.message||'Monitorando as variações salvas pelo ZZMI após F10.')}${state.appearanceSync?.lastSaved?' · Último salvamento: '+esc(state.appearanceSync.lastSaved):''}. O ZZZ precisa registrar a alteração em <code>d3dx_user.ini</code> para que seja salva.</p>
 <div class="filterbar">
   <div class="search"><span>⌕</span><input id="searchInput" placeholder="Buscar por nome, agente ou caminho" value="${esc(state.filters.search)}"></div>
   <select class="select" id="charFilter">${charactersInLibrary().map(ch=>`<option ${state.filters.char===ch?'selected':''}>${esc(ch)}</option>`).join('')}</select>
@@ -793,18 +793,6 @@ async function captureHotkeyKeydown(e){
   }finally{state.busy=false}
 }
 document.addEventListener('keydown',captureHotkeyKeydown,true);
-async function saveAppearance(id){
- if(state.busy)return;
- const mod=state.mods.find(x=>x.id===id);
- if(!mod)return;
- if(!confirm('Você já ajustou a variação no ZZZ e pressionou F10? Só valores global persist registrados em d3dx_user.ini podem ser salvos. O aplicativo cria uma cópia .zzzmanager.bak do arquivo original antes de alterar o .ini.'))return;
- state.busy=true;
- try{
-  const data=await api('appearance/save',{method:'POST',body:{id}});
-  await refresh();toast(data.message||'Variação salva');
- }catch(e){toast(e.message,true)}
- finally{state.busy=false}
-}
 async function syncHashDatabase(){
  if(state.busy)return;
  state.busy=true;
@@ -973,7 +961,6 @@ document.addEventListener('click',async e=>{
     }
     if(a==='pick-outfit-photo'){state.photoFor=outfitPhotoKey(action.dataset.agent,action.dataset.outfit);return $('#photoFile').click()}
     if(a==='delete-outfit-photo')return removeCustomPhoto(outfitPhotoKey(action.dataset.agent,action.dataset.outfit));
-    if(a==='save-appearance')return saveAppearance(action.dataset.id);
     if(a==='edit-hotkey')return startHotkeyCapture(action);
     if(a==='show-skins'){const agent=action.dataset.agent;expandedAgentSkins.has(agent)?expandedAgentSkins.delete(agent):expandedAgentSkins.add(agent);return render()}
     if(a==='select-agent') return openAgentPicker(action.dataset.id);
