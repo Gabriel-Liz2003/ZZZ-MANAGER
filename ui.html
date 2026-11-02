@@ -536,7 +536,7 @@ function modCard(m){return `<div class="card modcard">
   <div class="cardbody">
     <div class="title">${esc(m.name)}</div>
     <div class="subtitle">${esc(m.character||'Sem categoria')}</div>
-    <div class="meta" style="align-items:center;margin-top:10px"><span class="mini">Traje:</span><select class="mod-outfit-select" data-mod-outfit="${esc(m.id)}"><option value="unknown" ${(!m.outfitId||m.outfitId==='unknown')?'selected':''}>Não identificado</option>${officialCostumes(m.character).map(o=>`<option value="${esc(o.id)}" ${m.outfitId===o.id?'selected':''}>${esc(o.name)}</option>`).join('')}</select></div>
+    <div class="meta" style="align-items:center;margin-top:10px"><span class="mini">Traje:</span><select class="mod-outfit-select" data-mod-outfit="${esc(m.id)}"><option value="auto">↻ Voltar à detecção automática</option><option value="unknown" ${(!m.outfitId||m.outfitId==='unknown')?'selected':''}>Não identificado</option>${officialCostumes(m.character).map(o=>`<option value="${esc(o.id)}" ${m.outfitId===o.id?'selected':''}>${esc(o.name)}</option>`).join('')}</select></div>
     <div class="hash-recognition ${m.outfitSource==='manual'?'manual':m.outfitSource!=='hash'?'unknown':''}">
       ${m.outfitSource==='hash'?`✓ Identificado por hashes (${m.outfitEvidence||1} correspondência(s), confiança ${m.outfitConfidence==='high'?'alta':'média'}).`:
        m.outfitSource==='manual'?'✎ Classificação manual — pode alterar no seletor acima.':
