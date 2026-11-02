@@ -1,6 +1,15 @@
-# NEON/MODS — ZZZ Mod Desk v3.3.3
+# NEON/MODS — ZZZ Mod Desk v3.4.0
 
 Gerenciador de mods do Zenless Zone Zero para Windows, com suporte à pasta `Mods` do ZZMI / XXMI.
+
+## v3.4.0 — Galeria de skins, sorteio e variações persistentes
+
+- **Galeria por agente**: mostra a aparência original e os mods instalados, com as prévias encontradas nas pastas. Mods sem prévia própria são identificados como tal e usam o retrato do agente como substituto.
+- **Uma skin por agente**: escolher uma opção ativa essa skin e desativa as demais do mesmo personagem. Original desativa todos os mods do personagem. Nenhum outro agente é modificado.
+- **🎲 Sortear aparências**: apenas agentes que tinham uma skin ativa participam. Cada um recebe outra skin instalada ou a aparência original; personagens sem skin ativa não são alterados. Operações são revertidas se uma troca falhar.
+- **F10 para aplicar em jogo**: o app renomeia as pastas, mas o 3DMigoto requer recarregamento para refletir as escolhas.
+- **Salvamento opcional de variações**: quando um mod declara `global persist`, o app exibe **Salvar variação atual (após F10)**. Depois de alterar óculos, acessórios, roupas etc. no jogo, pressione F10, retorne ao app e clique no botão. Ele lê `d3dx_user.ini` ao lado da pasta `Mods` e sincroniza APENAS variáveis numéricas de `global persist` com correspondência exata de caminho e nome de variável. O `d3dx_user.ini` é somente leitura e uma cópia `.zzzmanager.bak` é criada antes de modificar cada `.ini`.
+- **Limitação importante**: mods que não declaram `global persist`, utilizam namespaces não padronizados, formatos diferentes, ou variáveis que o 3DMigoto não gravou não permitem garantia automática de preservação. O aplicativo informa quando nenhuma variável compatível é encontrada, sem modificar o arquivo.
 
 ## Importação RAR reforçada (v3.3.4)
 
