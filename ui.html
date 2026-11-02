@@ -1058,7 +1058,15 @@ document.addEventListener('drop',async e=>{
 });
 document.addEventListener('error',e=>{const img=e.target;if(img?.tagName==='IMG'&&img.dataset.fallback&&img.src!==img.dataset.fallback){img.src=img.dataset.fallback}},true);
 refresh();
-setTimeout(()=>refresh(),10000);
+async function refreshAutoPresetStatus(){
+ try{
+   const data=await api('appearance/status');
+   state.appearanceSync=data;
+   const el=$('#appearanceAutoState');
+   if(el)el.textContent='💾 Presets automáticos: '+(data.message||'Aguardando F10')+(data.lastSaved?' · Último salvamento: '+data.lastSaved:'')+'.';
+ }catch(_){}
+}
+setInterval(refreshAutoPresetStatus,8000);
 </script>
 </body>
 </html>
