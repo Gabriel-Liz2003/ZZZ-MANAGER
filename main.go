@@ -421,7 +421,7 @@ func scanMods(root string, tags map[string]string) ([]*Mod, []Conflict, error) {
 		mod := &Mod{ID: id, Name: prettyName(name), RelPath: filepath.ToSlash(rel), Enabled: enabled, InheritedDisabled: inherited, path: p, hashes: make(map[string]bool)}
 		mod.Hotkeys = []ModHotkey{}
 		mod.Character = guessCharacter(mod.Name)
-		if t := tags[id]; t != "" {
+		if t := inheritedModSetting(tags,id); t != "" {
 			mod.Character = t
 		}
 		var bestPreview string
