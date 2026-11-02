@@ -1,6 +1,17 @@
-# NEON/MODS — ZZZ Mod Desk v3.4.1
+# NEON/MODS — ZZZ Mod Desk v3.5.0
 
 Gerenciador de mods do Zenless Zone Zero para Windows, com suporte à pasta `Mods` do ZZMI / XXMI.
+
+## v3.5.0 — Trajes oficiais separados dos mods
+
+A aba **Agentes** não confunde mais o visual original com um mod. Cada agente aparece com seu **traje padrão oficial** e suas **roupas alternativas oficiais conhecidas**, quando disponíveis. Exemplo: Astra tem **Scarlet Rock** (padrão) e **Chandelier** (oficial alternativo). A miniatura da Chandelier fornecida para o projeto está embutida no programa; para outras roupas, usa-se imagem pública quando disponível, com fallback do retrato do agente se necessário.
+
+- Em **Biblioteca → Traje**, classifique o mod como compatível com o traje padrão ou com uma roupa oficial alternativa. O programa tenta reconhecer nomes explícitos, mas não deduz com segurança quais hashes de modelo o mod substitui; confirme a classificação quando necessário.
+- Cada roupa oficial na galeria mostra apenas os mods ligados a ela. Escolher um mod desativa os demais mods do mesmo agente, mantendo **no máximo um mod ativo por personagem**. A opção **Sem mod** deixa o traje selecionado no catálogo, sem substituir os arquivos do jogo.
+- Marque **Possuo no jogo** nas roupas alternativas que realmente estão desbloqueadas na sua conta. O gerenciador não acessa a conta da HoYoverse para descobrir isso.
+- O botão **Sortear trajes** sorteia entre as roupas possuídas (e o padrão) que tenham mods instalados e sorteia **exatamente um mod** compatível por agente com mod ativo. Agentes sem mod ativo não são alterados.
+- **Limitação técnica importante:** selecionar uma roupa oficial no ZZZ Manager não equipa nem compra essa roupa no ZZZ. O usuário deve equipá-la no menu Trajes do jogo. O gerenciador troca apenas os mods da pasta ZZMI; depois pressione **F10** no jogo para recarregá-los.
+- Os mods e presets atuais são preservados. Os vínculos de roupas oficiais, marcações de propriedade e a roupa escolhida ficam em `config.json`.
 
 ## v3.4.1 — Galeria de skins, sorteio e variações persistentes
 
