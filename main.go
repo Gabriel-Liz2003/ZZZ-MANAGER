@@ -798,10 +798,10 @@ func (a *App) api(w http.ResponseWriter, r *http.Request) {
 			apiFail(w, 400, err.Error())
 			return
 		}
-		if findMod(mods, req.ID) == nil {
-			apiFail(w, 404, "Mod não encontrado")
-			return
-		}
+		taggedMod:=findMod(mods,req.ID)
+        if taggedMod==nil{
+            apiFail(w,404,"Mod não encontrado");return
+        }
 		req.Character = strings.TrimSpace(req.Character)
 		if len([]rune(req.Character)) > 60 {
 			apiFail(w, 400, "Categoria muito longa")
@@ -818,7 +818,7 @@ func (a *App) api(w http.ResponseWriter, r *http.Request) {
 		}
 		message:="Categoria salva"
         if cleanAgentFolder(req.Character){
-          result,moveErr:=a.organizeAgentFolders("")
+          result,moveErr:=a.organizeAgentFolders(taggedMod.path)
           if moveErr!=nil{message+="; pastas não reorganizadas: "+moveErr.Error()
           }else if result.Moved>0{message+=fmt.Sprintf(" · %d pasta(s) alocada(s) por agente",result.Moved)}
         }
